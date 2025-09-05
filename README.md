@@ -56,14 +56,22 @@ query-builder/
    ```
 
 2. **Set up the database:**
-   Create a MySQL database and note the connection details
+   ```bash
+   # Start the database infrastructure (Docker required)
+   ./infra-manager.sh start
+   
+   # This will start MySQL on localhost:3306 with sample data
+   # Database: query_builder, User: queryuser, Password: querypass
+   ```
 
 3. **Configure environment:**
    ```bash
    # Backend configuration
    cd packages/backend
    cp .env.example .env
-   # Edit .env with your database connection
+   
+   # Add this line to your .env file:
+   # DATABASE_URL="mysql://queryuser:querypass@localhost:3306/query_builder"
    ```
 
 4. **Start the application:**

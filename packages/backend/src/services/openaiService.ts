@@ -1,4 +1,7 @@
 import OpenAI from 'openai';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 interface QueryGenerationRequest {
   prompt: string;
@@ -12,30 +15,67 @@ interface QueryGenerationResponse {
   tables_used: string[];
 }
 
+interface AIConfig {
+  enabled: boolean;
+  apiKey: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+}
+
 class OpenAIService {
   private openai: OpenAI | null = null;
   private isEnabled = false;
+  private config: AIConfig = {
+    enabled: false,
+    apiKey: '',
+    model: 'gpt-4-turbo-preview',
+    temperature: 0.3,
+    maxTokens: 1000
+  };
 
   constructor() {
+    // Try to initialize with environment variable first
     const apiKey = process.env.OPENAI_API_KEY;
     
     if (apiKey && apiKey.length > 0) {
-      try {
-        this.openai = new OpenAI({ apiKey });
-        this.isEnabled = true;
-        console.log('✅ OpenAI service initialized');
-      } catch (error) {
-        console.warn('⚠️  Failed to initialize OpenAI service:', error);
-        this.isEnabled = false;
-      }
+      this.config.enabled = true;
+      this.config.apiKey = apiKey;
+      this.initializeOpenAI();
     } else {
       console.log('ℹ️  OpenAI API key not found. AI-enhanced query generation disabled.');
       this.isEnabled = false;
     }
   }
 
+  private initializeOpenAI() {
+    try {
+      this.openai = new OpenAI({ apiKey: this.config.apiKey });
+      this.isEnabled = this.config.enabled;
+      console.log('✅ OpenAI service initialized');
+    } catch (error) {
+      console.warn('⚠️  Failed to initialize OpenAI service:', error);
+      this.isEnabled = false;
+    }
+  }
+
   public get enabled(): boolean {
     return this.isEnabled && this.openai !== null;
+  }
+
+  public updateConfig(newConfig: AIConfig): void {
+    this.config = { ...newConfig };
+    
+    if (this.config.enabled && this.config.apiKey) {
+      this.initializeOpenAI();
+    } else {
+      this.isEnabled = false;
+      this.openai = null;
+    }
+  }
+
+  public getConfig(): AIConfig {
+    return { ...this.config };
   }
 
   public async generateQuery(request: QueryGenerationRequest): Promise<QueryGenerationResponse | null> {
@@ -48,13 +88,13 @@ class OpenAIService {
       const userPrompt = this.buildUserPrompt(request.prompt);
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: this.config.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.3,
-        max_tokens: 1000,
+        temperature: this.config.temperature,
+        max_tokens: this.config.maxTokens,
         response_format: { type: 'json_object' }
       });
 
@@ -107,10 +147,12 @@ Return a JSON object with:
 
 Example:
 {
-  "sql": "SELECT u.name, COUNT(o.id) as order_count FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.name ORDER BY order_count DESC LIMIT 10",
+  "sql": "SELECT fn_bin2uuid(user_profile_id) AS user_profile_id, user_profile_email, user_profile_status 
+    FROM users_profiles WHERE user_profile_is_deleted = 0 
+    ORDER BY user_profile_updated_at DESC LIMIT 10",
   "confidence": 0.9,
-  "reasoning": "Generated a query to find users with the most orders by joining users and orders tables, grouping by user, and ordering by order count.",
-  "tables_used": ["users", "orders"]
+  "reasoning": "Generated a query to list recent active user profiles selecting basic fields, filtering out deleted profiles, ordered by update time with a limit.",
+  "tables_used": ["users_profiles"]
 }`;
   }
 
@@ -144,3 +186,4 @@ Please provide the response as a JSON object with the required fields.`;
 // Export a singleton instance
 export const openaiService = new OpenAIService();
 export default openaiService;
+export type { AIConfig };

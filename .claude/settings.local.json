@@ -16,7 +16,14 @@
       "Bash(git commit:*)",
       "Bash(mkdir:*)",
       "Bash(chmod:*)",
-      "Bash(./infra-manager.sh:*)"
+      "Bash(./infra-manager.sh:*)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(curl:*)",
+      "Bash(tar:*)",
+      "Bash(mysql:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

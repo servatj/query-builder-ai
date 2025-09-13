@@ -173,6 +173,39 @@ CREATE TABLE orders (
 );
 ```
 
+### rules.json format
+
+Use this structure to define the database schema reference and the natural-language-to-SQL patterns:
+
+```json
+{
+  "schema": {
+    "table_name_here": {
+      "columns": ["column_one", "column_two", "column_three"],
+      "description": "Short description of what this table stores."
+    }
+  },
+  "query_patterns": [
+    {
+      "intent": "unique_intent_key",
+      "template": "SELECT col1, col2 FROM table_name_here WHERE some_field = '?'",
+      "description": "What this query returns and the filter logic.",
+      "keywords": ["primary", "search", "terms"],
+      "examples": ["Plain-English example input 1", "Plain-English example input 2"]
+    }
+  ]
+}
+```
+
+- **schema**: map each table to its `columns` and a short `description`.
+- **query_patterns** (array of patterns):
+  - **intent**: unique key for the query.
+  - **template**: SQL with `?` placeholders.
+    - Quote string params (`WHERE col = '?'`).
+    - Use `fn_uuid2bin('?')` for UUID-binary fields.
+  - **keywords**: words/phrases likely to appear in prompts.
+  - **examples**: natural language prompts that should trigger this intent.
+
 ### Adding New Query Patterns
 
 Edit `packages/backend/src/rules.json` to add new patterns:
@@ -187,6 +220,7 @@ Edit `packages/backend/src/rules.json` to add new patterns:
 ```
 
 ## 🚀 Deployment
+
 
 ### Backend Deployment
 ```bash

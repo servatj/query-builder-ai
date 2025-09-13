@@ -4,7 +4,8 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs/promises';
 import mysql from 'mysql2/promise';
-import openaiService from './services/openaiService';
+import openaiService, { AIConfig } from './services/openaiService';
+import databaseService, { DatabaseConfig, AISettingsDB } from './services/databaseService';
 
 dotenv.config();
 
@@ -29,6 +30,9 @@ const createPool = () => {
 };
 
 const pool = createPool();
+
+// In-memory cache for rules (rules.json remains file-based as requested)
+let currentSettings: Rules | null = null;
 
 // Middleware
 app.use(cors());
@@ -67,6 +71,17 @@ interface Rules {
 // Helper functions
 const sanitizeInput = (input: string): string => {
   return input.trim().toLowerCase().replace(/[^\w\s]/g, '');
+};
+
+const loadRulesFromFile = async (): Promise<Rules> => {
+  const rulesPath = path.join(__dirname, 'rules.json');
+  const rulesFile = await fs.readFile(rulesPath, 'utf-8');
+  return JSON.parse(rulesFile);
+};
+
+const saveRulesToFile = async (rules: Rules): Promise<void> => {
+  const rulesPath = path.join(__dirname, 'rules.json');
+  await fs.writeFile(rulesPath, JSON.stringify(rules, null, 2), 'utf-8');
 };
 
 const validatePrompt = (prompt: string): { isValid: boolean; error?: string } => {
@@ -122,7 +137,13 @@ app.get('/', (req: Request, res: Response) => {
       'POST /api/generate-query',
       'POST /api/validate-query',
       'GET /api/health',
-      'GET /api/patterns'
+      'GET /api/patterns',
+      'GET /api/settings',
+      'POST /api/settings/rules',
+      'POST /api/settings/database',
+      'POST /api/settings/database/test',
+      'POST /api/settings/ai',
+      'POST /api/settings/ai/test'
     ],
     database: pool ? 'connected' : 'not configured'
   });
@@ -174,9 +195,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
 // Get available query patterns
 app.get('/api/patterns', async (req: Request, res: Response) => {
   try {
-    const rulesPath = path.join(__dirname, 'rules.json');
-    const rulesFile = await fs.readFile(rulesPath, 'utf-8');
-    const rules: Rules = JSON.parse(rulesFile);
+    const rules = currentSettings || await loadRulesFromFile();
 
     const patterns = rules.query_patterns.map(pattern => ({
       intent: pattern.intent,
@@ -196,6 +215,260 @@ app.get('/api/patterns', async (req: Request, res: Response) => {
   }
 });
 
+// Get current settings
+app.get('/api/settings', async (req: Request, res: Response) => {
+  try {
+    const rules = currentSettings || await loadRulesFromFile();
+    
+    // Get database and AI settings from database
+    const defaultDbConfig = await databaseService.getDefaultDatabaseConfig();
+    const defaultAiConfig = await databaseService.getDefaultAISettings();
+    
+    res.json({
+      rules,
+      database: defaultDbConfig || {
+        name: 'Default',
+        host: 'localhost',
+        port: 3306,
+        database_name: 'sakila',
+        username: 'queryuser',
+        password: 'querypass',
+        ssl_enabled: false,
+        is_active: true,
+        is_default: true
+      },
+      ai: defaultAiConfig || {
+        name: 'Default',
+        enabled: false,
+        apiKey: '',
+        model: 'gpt-4-turbo-preview',
+        temperature: 0.3,
+        maxTokens: 1000,
+        is_active: true,
+        is_default: true
+      }
+    });
+  } catch (error: unknown) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// Update rules configuration
+app.post('/api/settings/rules', async (req: Request, res: Response) => {
+  try {
+    const { schema, query_patterns } = req.body;
+    
+    // Validate required fields
+    if (!schema || !query_patterns) {
+      return res.status(400).json({ error: 'Both schema and query_patterns are required' });
+    }
+    
+    if (!Array.isArray(query_patterns)) {
+      return res.status(400).json({ error: 'query_patterns must be an array' });
+    }
+
+    const newRules: Rules = { schema, query_patterns };
+    
+    // Save to file and update in-memory cache
+    await saveRulesToFile(newRules);
+    currentSettings = newRules;
+    
+    res.json({ 
+      success: true, 
+      message: 'Rules configuration updated successfully',
+      patterns: query_patterns.length,
+      tables: Object.keys(schema).length
+    });
+  } catch (error: unknown) {
+    console.error('Error updating rules:', error);
+    res.status(500).json({ error: 'Failed to update rules configuration' });
+  }
+});
+
+// Update database configuration
+app.post('/api/settings/database', async (req: Request, res: Response) => {
+  try {
+    const { name, host, port, database_name, username, password, ssl_enabled } = req.body;
+    
+    // Validate required fields
+    if (!host || !port || !database_name || !username) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: host, port, database_name, username are required' 
+      });
+    }
+    
+    const dbConfig: Omit<DatabaseConfig, 'id'> = {
+      name: name || 'Custom Configuration',
+      host,
+      port: parseInt(port),
+      database_name,
+      username,
+      password: password || '',
+      ssl_enabled: ssl_enabled || false,
+      is_active: true,
+      is_default: true // Make this the new default
+    };
+    
+    await databaseService.saveDatabaseConfig(dbConfig);
+    
+    res.json({ 
+      success: true, 
+      message: 'Database configuration updated successfully'
+    });
+  } catch (error: unknown) {
+    console.error('Error updating database config:', error);
+    res.status(500).json({ error: 'Failed to update database configuration' });
+  }
+});
+
+// Test database connection
+app.post('/api/settings/database/test', async (req: Request, res: Response) => {
+  try {
+    const { host, port, database, username, password, ssl } = req.body;
+    
+    // Create connection string for testing
+    const connectionUrl = `mysql://${username}:${password || ''}@${host}:${port}/${database}${ssl ? '?ssl=true' : ''}`;
+    
+    let testPool: mysql.Pool | null = null;
+    try {
+      testPool = mysql.createPool(connectionUrl);
+      const connection = await testPool.getConnection();
+      await connection.ping();
+      connection.release();
+      
+      res.json({ 
+        success: true, 
+        message: 'Database connection successful'
+      });
+    } catch (dbError: any) {
+      res.json({ 
+        success: false, 
+        error: `Connection failed: ${dbError.message}`
+      });
+    } finally {
+      if (testPool) {
+        await testPool.end();
+      }
+    }
+  } catch (error: unknown) {
+    console.error('Error testing database connection:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to test database connection' 
+    });
+  }
+});
+
+// Update AI configuration
+app.post('/api/settings/ai', async (req: Request, res: Response) => {
+  try {
+    const { name, enabled, apiKey, model, temperature, maxTokens } = req.body;
+    
+    // Validate required fields when enabled
+    if (enabled && !apiKey) {
+      return res.status(400).json({ 
+        error: 'API Key is required when AI is enabled' 
+      });
+    }
+    
+    // Validate model and parameters
+    if (enabled) {
+      if (!model || typeof model !== 'string') {
+        return res.status(400).json({ error: 'Model is required and must be a string' });
+      }
+      
+      if (typeof temperature !== 'number' || temperature < 0 || temperature > 1) {
+        return res.status(400).json({ error: 'Temperature must be a number between 0 and 1' });
+      }
+      
+      if (typeof maxTokens !== 'number' || maxTokens < 1 || maxTokens > 4000) {
+        return res.status(400).json({ error: 'Max tokens must be a number between 1 and 4000' });
+      }
+    }
+    
+    const aiSettings: Omit<AISettingsDB, 'id'> = {
+      name: name || 'Custom Configuration',
+      enabled,
+      apiKey,
+      model,
+      temperature,
+      maxTokens,
+      is_active: true,
+      is_default: true // Make this the new default
+    };
+    
+    await databaseService.saveAISettings(aiSettings);
+    
+    // Update the OpenAI service with new settings
+    if (enabled && apiKey) {
+      try {
+        const aiConfig: AIConfig = { enabled, apiKey, model, temperature, maxTokens };
+        openaiService.updateConfig(aiConfig);
+      } catch (error) {
+        console.warn('Failed to update OpenAI service config:', error);
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'AI configuration updated successfully'
+    });
+  } catch (error: unknown) {
+    console.error('Error updating AI config:', error);
+    res.status(500).json({ error: 'Failed to update AI configuration' });
+  }
+});
+
+// Test AI connection
+app.post('/api/settings/ai/test', async (req: Request, res: Response) => {
+  try {
+    const { enabled, apiKey, model } = req.body;
+    
+    if (!enabled) {
+      return res.json({ 
+        success: false, 
+        error: 'AI is disabled in configuration'
+      });
+    }
+    
+    if (!apiKey) {
+      return res.json({ 
+        success: false, 
+        error: 'API Key is required for testing'
+      });
+    }
+    
+    // Test with temporary OpenAI instance
+    try {
+      const { OpenAI } = await import('openai');
+      const testClient = new OpenAI({ apiKey });
+      
+      await testClient.chat.completions.create({
+        model: model || 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: 'Test connection' }],
+        max_tokens: 5
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'AI connection successful'
+      });
+    } catch (aiError: any) {
+      res.json({ 
+        success: false, 
+        error: `AI connection failed: ${aiError.message}`
+      });
+    }
+  } catch (error: unknown) {
+    console.error('Error testing AI connection:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to test AI connection' 
+    });
+  }
+});
+
 // Generate query endpoint with OpenAI and fallback pattern matching
 app.post('/api/generate-query', async (req: Request, res: Response) => {
   try {
@@ -208,9 +481,10 @@ app.post('/api/generate-query', async (req: Request, res: Response) => {
     }
 
     // Load rules
-    const rulesPath = path.join(__dirname, 'rules.json');
-    const rulesFile = await fs.readFile(rulesPath, 'utf-8');
-    const rules: Rules = JSON.parse(rulesFile);
+    const rules = currentSettings || await loadRulesFromFile();
+    if (!currentSettings) {
+      currentSettings = rules; // Cache for next time
+    }
 
     // Try OpenAI first if enabled and requested
     if (useAI && openaiService.enabled) {

@@ -7,7 +7,6 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: query_builder
       MYSQL_USER: queryuser
       MYSQL_PASSWORD: querypass
     ports:

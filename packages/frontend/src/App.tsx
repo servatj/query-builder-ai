@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Settings from '@/components/Settings';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -31,7 +32,12 @@ interface GeneratedQuery {
   extractedValues: string[];
 }
 
+// New: backend schema types
+type SchemaTable = { columns: string[]; description: string };
+type BackendSchema = Record<string, SchemaTable>;
+
 function App() {
+  const [currentPage, setCurrentPage] = useState<'query-builder' | 'settings'>('query-builder');
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState('');
   const [sqlQuery, setSqlQuery] = useState('');
   const [isValid, setIsValid] = useState<boolean | null>(null);
@@ -47,14 +53,19 @@ function App() {
     executionTime?: string;
     limited?: boolean;
   } | null>(null);
+  // New: store schema from backend
+  const [schema, setSchema] = useState<BackendSchema | null>(null);
 
   // Load available patterns and health status on component mount
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // Load available patterns
+        // Load available patterns (also includes schema)
         const patternsResponse = await axios.get(`${API_BASE_URL}/api/patterns`);
         setAvailablePatterns(patternsResponse.data.patterns || []);
+        if (patternsResponse.data.schema) {
+          setSchema(patternsResponse.data.schema as BackendSchema);
+        }
 
         // Check health status
         const healthResponse = await axios.get(`${API_BASE_URL}/api/health`);
@@ -162,12 +173,59 @@ function App() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with health status */}
+        {/* Header with navigation and health status */}
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">AI-Powered Query Builder</h1>
-            <p className="text-muted-foreground">Convert natural language to SQL queries with real-time validation</p>
+          <div className="flex items-center space-x-6">
+            <div>
+              <h1 className="text-3xl font-bold">AI-Powered Query Builder</h1>
+              <p className="text-muted-foreground">Convert natural language to SQL queries with real-time validation</p>
+            </div>
+            
+            {/* Navigation */}
+            <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+              <button
+                onClick={() => setCurrentPage('query-builder')}
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  currentPage === 'query-builder' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Query Builder
+              </button>
+              <button
+                onClick={() => setCurrentPage('settings')}
+                className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
+                  currentPage === 'settings' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <svg 
+                  className="w-4 h-4" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24" 
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" 
+                  />
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+                  />
+                </svg>
+                <span>Settings</span>
+              </button>
+            </div>
           </div>
+          
           {healthStatus && (
             <div className="text-right">
               <div className={`text-sm font-medium ${getHealthStatusColor()}`}>
@@ -180,6 +238,10 @@ function App() {
           )}
         </div>
 
+        {/* Conditional Page Rendering */}
+        {currentPage === 'settings' ? (
+          <Settings />
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Query Builder */}
           <div className="lg:col-span-2">
@@ -388,24 +450,29 @@ function App() {
                 <CardDescription>Available tables and columns</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <div className="font-medium text-sm">users</div>
-                    <div className="text-xs text-muted-foreground">id, name, email, signup_date, state, age, phone</div>
+                {/* Render dynamic schema from backend if available */}
+                {schema ? (
+                  <div className="space-y-3 max-h-80 overflow-auto pr-1">
+                    {Object.entries(schema).map(([table, info]) => (
+                      <div key={table}>
+                        <div className="font-medium text-sm">{table}</div>
+                        <div className="text-xs text-muted-foreground truncate" title={info.columns.join(', ')}>
+                          {info.columns.join(', ')}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <div className="font-medium text-sm">products</div>
-                    <div className="text-xs text-muted-foreground">id, name, price, category, created_at, stock_quantity</div>
+                ) : (
+                  // Fallback: brief guidance when schema not loaded
+                  <div className="text-xs text-muted-foreground">
+                    Schema not loaded. Ensure the backend is running and exposes /api/patterns.
                   </div>
-                  <div>
-                    <div className="font-medium text-sm">orders</div>
-                    <div className="text-xs text-muted-foreground">id, user_id, product_id, quantity, order_date, total_amount</div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

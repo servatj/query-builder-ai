@@ -31,10 +31,14 @@ DATABASE_URL="mysql://queryuser:querypass@localhost:3306/query_builder"
 ### MySQL Database
 - **Host**: localhost
 - **Port**: 3306
-- **Database**: query_builder
 - **Username**: queryuser
 - **Password**: querypass
 - **Root Password**: rootpassword
+
+**Available Databases:**
+- `query_builder` - Production database
+- `query_builder_sbox` - Sandbox database for testing
+- `sakila` - Demo database (DVD rental store)
 
 ### phpMyAdmin (Optional)
 - **URL**: http://localhost:8080
@@ -43,20 +47,29 @@ DATABASE_URL="mysql://queryuser:querypass@localhost:3306/query_builder"
 
 ## 🗃️ Database Schema
 
-The database comes pre-populated with:
-
-### Tables
+### Production Database (`query_builder`)
+Contains the main application tables:
 - **users**: User profiles with signup dates and locations
 - **products**: Product catalog with categories and pricing
 - **orders**: Order history linking users to products
 
-### Sample Data
+**Sample Data:**
 - 15 sample users from different states
 - 20 sample products across categories (electronics, books, clothing, home, sports)
 - 25+ sample orders with various statuses and dates
 
+### Sandbox Database (`query_builder_sbox`)
+Copy of production schema for testing and experimentation.
+
+### Demo Database (`sakila`)
+Classic DVD rental store database for showcasing the query builder capabilities:
+- **actor, film, customer, rental, payment** tables
+- Rich relational data perfect for demonstrating complex queries
+- Ideal for testing natural language to SQL conversion
+
 ### Example Queries You Can Try
 
+**Production Database (`query_builder`):**
 ```sql
 -- Find users from California
 SELECT * FROM users WHERE state = 'California';
@@ -64,13 +77,47 @@ SELECT * FROM users WHERE state = 'California';
 -- Count products by category
 SELECT category, COUNT(*) as product_count FROM products GROUP BY category;
 
--- Get recent orders
+-- Get recent orders with user details
 SELECT u.name, p.name as product_name, o.quantity, o.order_date 
 FROM orders o 
 JOIN users u ON o.user_id = u.id 
 JOIN products p ON o.product_id = p.id 
 WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 7 DAY);
 ```
+
+**Sandbox Database (`query_builder_sbox`):**
+```sql
+-- Same schema as production, safe for testing
+SELECT * FROM users WHERE name LIKE '%Sandbox%';
+
+-- Test complex queries without affecting production
+SELECT category, AVG(price) as avg_price, COUNT(*) as product_count 
+FROM products 
+GROUP BY category 
+ORDER BY avg_price DESC;
+```
+
+**Demo Database (`sakila`):**
+```sql
+-- Find all actors in a specific film
+SELECT CONCAT(a.first_name, ' ', a.last_name) as actor_name
+FROM actor a
+JOIN film_actor fa ON a.actor_id = fa.actor_id
+JOIN film f ON fa.film_id = f.film_id
+WHERE f.title = 'ACADEMY DINOSAUR';
+
+-- Get rental statistics by customer
+SELECT CONCAT(c.first_name, ' ', c.last_name) as customer_name,
+       COUNT(r.rental_id) as total_rentals,
+       SUM(p.amount) as total_spent
+FROM customer c
+LEFT JOIN rental r ON c.customer_id = r.customer_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY c.customer_id
+ORDER BY total_spent DESC
+LIMIT 10;
+```
+
 
 ## 🛠️ Management Commands
 

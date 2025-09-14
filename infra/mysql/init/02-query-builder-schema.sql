@@ -70,11 +70,12 @@ CREATE INDEX idx_app_settings_type ON app_settings(setting_type);
 CREATE INDEX idx_query_logs_status ON query_logs(execution_status);
 CREATE INDEX idx_query_logs_created ON query_logs(created_at);
 
--- Insert default database configuration (Sakila sandbox)
+-- Insert default database configuration
 INSERT INTO database_settings (name, host, port, database_name, username, password, ssl_enabled, is_active, is_default) 
 VALUES 
-('Sakila Sandbox', 'localhost', 3306, 'sakila', 'queryuser', 'querypass', FALSE, TRUE, TRUE),
-('Local Development', 'localhost', 3306, 'query_builder', 'queryuser', 'querypass', FALSE, TRUE, FALSE);
+('Production Database', 'localhost', 3306, 'query_builder', 'queryuser', 'querypass', FALSE, TRUE, TRUE),
+('Sandbox Database', 'localhost', 3306, 'query_builder_sbox', 'queryuser', 'querypass', FALSE, TRUE, FALSE),
+('Sakila Demo Database', 'localhost', 3310, 'sakila', 'queryuser', 'querypass', FALSE, TRUE, FALSE);
 
 -- Insert default AI configuration
 INSERT INTO ai_settings (name, enabled, model, temperature, max_tokens, is_active, is_default) 

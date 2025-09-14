@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mysql:
-    image: mysql:8.0
+    image: mysql:9.4
     container_name: query-builder-mysql
     restart: unless-stopped
     environment:
@@ -14,7 +14,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./infra/mysql/init:/docker-entrypoint-initdb.d
-    command: --default-authentication-plugin=mysql_native_password
+    
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
       timeout: 20s
@@ -22,27 +22,34 @@ services:
     networks:
       - query-builder-network
 
-  # Optional: phpMyAdmin for database management
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    container_name: query-builder-phpmyadmin
+  # Sakila Demo Database (separate container)
+  mysql-sakila:
+    image: mysql:9.4
+    container_name: query-builder-sakila
     restart: unless-stopped
     environment:
-      PMA_HOST: mysql
-      PMA_PORT: 3306
-      PMA_USER: queryuser
-      PMA_PASSWORD: querypass
       MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: queryuser
+      MYSQL_PASSWORD: querypass
+      MYSQL_DATABASE: sakila
     ports:
-      - "8080:80"
-    depends_on:
-      mysql:
-        condition: service_healthy
+      - "3310:3306"
+    volumes:
+      - sakila_data:/var/lib/mysql
+      - ./infra/mysql/sakila-init:/docker-entrypoint-initdb.d
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      timeout: 20s
+      retries: 10
     networks:
       - query-builder-network
 
+
 volumes:
   mysql_data:
+    driver: local
+  sakila_data:
     driver: local
 
 networks:

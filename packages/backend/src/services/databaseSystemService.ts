@@ -30,7 +30,7 @@ interface AppSetting {
   is_system: boolean;
 }
 
-class DatabaseService {
+class DatabaseSystemService {
   private pool: mysql.Pool | null = null;
   private settingsDbUrl: string;
 
@@ -85,6 +85,7 @@ class DatabaseService {
       connection.release();
     }
   }
+
 
   async saveDatabaseConfig(config: Omit<DatabaseConfig, 'id'>): Promise<number> {
     const connection = await this.getConnection();
@@ -295,6 +296,6 @@ class DatabaseService {
 }
 
 // Export singleton instance
-export const databaseService = new DatabaseService();
+export const databaseService = new DatabaseSystemService();
 export default databaseService;
 export type { DatabaseConfig, AISettingsDB, AppSetting };

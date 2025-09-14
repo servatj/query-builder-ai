@@ -19,10 +19,10 @@ interface QueryPattern {
 interface DatabaseSettings {
   host: string;
   port: number;
-  database: string;
+  database_name: string;
   username: string;
   password: string;
-  ssl?: boolean;
+  ssl_enabled?: boolean;
 }
 
 interface AISettings {
@@ -43,10 +43,10 @@ const Settings: React.FC = () => {
   const [databaseSettings, setDatabaseSettings] = useState<DatabaseSettings>({
     host: 'localhost',
     port: 3306,
-    database: '',
+    database_name: '',
     username: '',
     password: '',
-    ssl: false
+    ssl_enabled: false
   });
   const [aiSettings, setAiSettings] = useState<AISettings>({
     enabled: false,
@@ -62,6 +62,8 @@ const Settings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rules' | 'schema' | 'database' | 'ai'>('rules');
+  const [availableDatabases, setAvailableDatabases] = useState<any[]>([]);
+  const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(null);
   const [schemaEditMode, setSchemaEditMode] = useState<'visual' | 'json'>('visual');
 
   useEffect(() => {
@@ -77,6 +79,16 @@ const Settings: React.FC = () => {
       setSettingsJson(JSON.stringify(response.data.rules, null, 2));
       setDbSettingsJson(JSON.stringify(response.data.database || databaseSettings, null, 2));
       setAiSettingsJson(JSON.stringify(response.data.ai || aiSettings, null, 2));
+      
+      // Load available databases
+      const dbResponse = await axios.get(`${API_BASE_URL}/api/databases`);
+      setAvailableDatabases(dbResponse.data);
+      
+      // Set the current default database
+      const defaultDb = dbResponse.data.find((db: any) => db.is_default);
+      if (defaultDb) {
+        setSelectedDatabaseId(defaultDb.id);
+      }
     } catch (err: any) {
       console.warn('Could not load current settings:', err);
       // Try to load just the patterns for backward compatibility
@@ -131,7 +143,7 @@ const Settings: React.FC = () => {
       const parsedDbSettings = JSON.parse(dbSettingsJson);
       
       // Validate required fields
-      const required = ['host', 'port', 'database', 'username'];
+      const required = ['host', 'port', 'database_name', 'username'];
       for (const field of required) {
         if (!parsedDbSettings[field]) {
           throw new Error(`Missing required field: ${field}`);
@@ -183,7 +195,16 @@ const Settings: React.FC = () => {
     setSuccess(null);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/settings/database/test`, JSON.parse(dbSettingsJson));
+      const parsed = JSON.parse(dbSettingsJson);
+      const payload = {
+        host: parsed.host,
+        port: parsed.port,
+        database: parsed.database || parsed.database_name,
+        username: parsed.username,
+        password: parsed.password,
+        ssl: parsed.ssl ?? parsed.ssl_enabled
+      };
+      const response = await axios.post(`${API_BASE_URL}/api/settings/database/test`, payload);
       if (response.data.success) {
         setSuccess('Database connection test successful!');
       } else {
@@ -209,6 +230,28 @@ const Settings: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'AI connection test failed');
+    }
+    setIsLoading(false);
+  };
+
+  const handleSwitchDatabase = async () => {
+    if (!selectedDatabaseId) return;
+    
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/databases/${selectedDatabaseId}/switch`);
+      if (response.data.success) {
+        setSuccess('Database switched successfully!');
+        // Reload settings to get the new default database
+        await loadCurrentSettings();
+      } else {
+        setError('Failed to switch database: ' + response.data.error);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to switch database');
     }
     setIsLoading(false);
   };
@@ -548,10 +591,49 @@ const Settings: React.FC = () => {
           <CardHeader>
             <CardTitle>Database Configuration</CardTitle>
             <CardDescription>
-              Configure the database connection settings for query validation and execution
+              Configure database connections and settings
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Database Selection */}
+            <div className="space-y-3">
+              <label className="font-medium text-sm">Active Database</label>
+              <div className="space-y-2">
+                <select
+                  value={selectedDatabaseId || ''}
+                  onChange={(e) => {
+                    const id = e.target.value ? Number(e.target.value) : null;
+                    setSelectedDatabaseId(id);
+                    if (id) {
+                      const selected = availableDatabases.find((db) => db.id === id);
+                      if (selected) {
+                        setDatabaseSettings(selected);
+                        setDbSettingsJson(JSON.stringify(selected, null, 2));
+                      }
+                    }
+                  }}
+                  className="w-full p-2 border border-gray-300 rounded-md bg-background"
+                  disabled={isLoading}
+                >
+                  <option value="">Select a database...</option>
+                  {availableDatabases.map((db) => (
+                    <option key={db.id} value={db.id}>
+                      {db.name} ({db.host}:{db.port}/{db.database_name})
+                      {!!db.is_default && ' - Default'}
+                    </option>
+                  ))}
+                </select>
+                <Button 
+                  onClick={handleSwitchDatabase} 
+                  disabled={isLoading || !selectedDatabaseId}
+                  size="sm"
+                >
+                  {isLoading ? 'Switching...' : 'Switch Database'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Database Settings JSON Editor */}
             <div className="space-y-2">
               <label htmlFor="db-settings-json" className="font-medium">
                 Database Settings (JSON)
@@ -562,11 +644,11 @@ const Settings: React.FC = () => {
                 onChange={(e) => setDbSettingsJson(e.target.value)}
                 placeholder="Enter your database configuration as JSON..."
                 className="font-mono text-sm"
-                rows={15}
+                rows={12}
                 disabled={isLoading}
               />
               <div className="text-xs text-muted-foreground">
-                Required fields: host, port, database, username. Optional: password, ssl
+                Required fields: host, port, database_name, username. Optional: password, ssl_enabled
               </div>
             </div>
             
@@ -587,12 +669,15 @@ const Settings: React.FC = () => {
               <h3 className="font-medium mb-2">Configuration Template</h3>
               <pre className="text-xs text-muted-foreground overflow-x-auto">
 {`{
+  "name": "My Database",
   "host": "localhost",
   "port": 3306,
-  "database": "your_database",
-  "username": "your_username",
+  "database_name": "your_database",
+  "username": "your_username", 
   "password": "your_password",
-  "ssl": false
+  "ssl_enabled": false,
+  "is_active": true,
+  "is_default": false
 }`}
               </pre>
             </div>

@@ -1,0 +1,92 @@
+import mysql from 'mysql2/promise';
+import { AIConfig } from './openaiService';
+
+
+class DatabaseDestinationService {
+  private pool: mysql.Pool | null = null;
+  private settingsDbUrl: string;
+
+  constructor() {
+    
+    this.settingsDbUrl = process.env.SETTINGS_DATABASE_URL || 
+      'mysql://queryuser:querypass@localhost:3310/sakila';
+    
+    this.initializePool();
+  }
+
+  private async initializePool() {
+    try {
+      this.pool = mysql.createPool(this.settingsDbUrl);
+      console.log('✅ Database service initialized for destination storage');
+    } catch (error) {
+      console.error('❌ Failed to initialize settings database pool:', error);
+      this.pool = null;
+    }
+  }
+
+  private async getConnection(): Promise<mysql.PoolConnection> {
+    if (!this.pool) {
+      throw new Error('Database pool not initialized');
+    }
+    return await this.pool.getConnection();
+  }
+
+  async testDestinationConnection(): Promise<boolean> {
+    try {
+      const connection = await this.getConnection();
+      await connection.ping();
+      connection.release();
+      return true;
+    } catch (error) {
+      console.error('Database connection test failed:', error);
+      return false;
+    }
+  }
+
+  async runQuery(query: string): Promise<any> {
+    // Enforce read-only, single-statement SELECT queries
+    const sanitized = query.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--.*$/gm, '').replace(/#.*/g, '').trim();
+    const lower = sanitized.toLowerCase();
+    if (!lower.startsWith('select')) {
+      throw new Error('Only SELECT queries are allowed');
+    }
+    if (sanitized.indexOf(';') !== -1 && sanitized.indexOf(';') < sanitized.length - 1) {
+      throw new Error('Multiple statements are not allowed');
+    }
+
+    const forbidden = [
+      /\b(drop|delete|truncate|alter|create|grant|revoke|insert|update|call|exec|execute)\b/i,
+      /union\s+all?\s+select/i,
+      /into\s+outfile/i,
+      /load_file\s*\(/i,
+      /sleep\s*\(/i,
+      /benchmark\s*\(/i,
+      /information_schema\./i,
+    ];
+    for (const p of forbidden) {
+      if (p.test(sanitized)) {
+        throw new Error('Query contains disallowed operations');
+      }
+    }
+
+    const connection = await this.getConnection();
+    try {
+      const [rows] = await connection.execute(sanitized);
+      return rows;
+    } finally {
+      connection.release();
+    }
+  }
+
+  // Close the pool
+  async close(): Promise<void> {
+    if (this.pool) {
+      await this.pool.end();
+      this.pool = null;
+    }
+  }
+}
+
+// Export singleton instance
+export const databaseService = new DatabaseDestinationService();
+export default databaseService;

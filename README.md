@@ -60,10 +60,9 @@ query-builder/
    # Start the database infrastructure (Docker required)
    ./infra-manager.sh start
    
-   # This will start MySQL on localhost:3306 with three databases:
-   # - query_builder (production)
-   # - query_builder_sbox (sandbox)  
-   # - sakila (demo/showcase)
+   # This will start two MySQL containers:
+   # Port 3306: query_builder (production) + query_builder_sbox (sandbox)
+   # Port 3310: sakila (demo/showcase database)
    # User: queryuser, Password: querypass
    ```
 
@@ -178,23 +177,23 @@ CREATE TABLE orders (
 
 ### Database Configuration
 
-The MySQL container provides three databases:
+The infrastructure provides three databases across two MySQL containers:
 
 ```bash
-# Production database (default)
+# Production database (default) - Port 3306
 DATABASE_URL="mysql://queryuser:querypass@localhost:3306/query_builder"
 
-# Sandbox database for testing
+# Sandbox database for testing - Port 3306
 DATABASE_URL="mysql://queryuser:querypass@localhost:3306/query_builder_sbox"
 
-# Demo database (Sakila DVD rental store)
-DATABASE_URL="mysql://queryuser:querypass@localhost:3306/sakila"
+# Demo database (Sakila DVD rental store) - Port 3310
+DATABASE_URL="mysql://queryuser:querypass@localhost:3310/sakila"
 ```
 
 **Use Cases:**
-- `query_builder` - Main application database
-- `query_builder_sbox` - Safe testing environment
-- `sakila` - Rich demo data for showcasing natural language queries
+- `query_builder` (3306) - Main application database
+- `query_builder_sbox` (3306) - Safe testing environment
+- `sakila` (3310) - Rich demo data for showcasing natural language queries
 
 ### rules.json format
 

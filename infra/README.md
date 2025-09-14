@@ -28,22 +28,21 @@ DATABASE_URL="mysql://queryuser:querypass@localhost:3306/query_builder"
 
 ## 📋 Services
 
-### MySQL Database
-- **Host**: localhost
-- **Port**: 3306
+### MySQL Databases
+
+**Main Container (Port 3306):**
+- **Host**: localhost:3306
 - **Username**: queryuser
 - **Password**: querypass
-- **Root Password**: rootpassword
+- **Databases**: 
+  - `query_builder` - Production database
+  - `query_builder_sbox` - Sandbox database for testing
 
-**Available Databases:**
-- `query_builder` - Production database
-- `query_builder_sbox` - Sandbox database for testing
-- `sakila` - Demo database (DVD rental store)
-
-### phpMyAdmin (Optional)
-- **URL**: http://localhost:8080
-- **Username**: queryuser
+**Sakila Container (Port 3310):**
+- **Host**: localhost:3310
+- **Username**: queryuser  
 - **Password**: querypass
+- **Database**: `sakila` - Demo database (DVD rental store)
 
 ## 🗃️ Database Schema
 
@@ -168,9 +167,6 @@ Edit `docker-compose.infra.yml` to modify:
 - Port mappings
 - Volume mounts
 
-### Disable phpMyAdmin
-
-Comment out the `phpmyadmin` service in `docker-compose.infra.yml` if you don't need the web interface.
 
 ## 🐛 Troubleshooting
 

@@ -5,7 +5,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import mysql from 'mysql2/promise';
 import openaiService, { AIConfig } from './services/openaiService';
-import databaseService, { DatabaseConfig, AISettingsDB } from './services/databaseService';
+import databaseService, { DatabaseConfig, AISettingsDB } from './services/databaseSystemService';
+// import databaseDestinationService from './services/databaseDestinationService';
 
 dotenv.config();
 
@@ -104,27 +105,45 @@ const validateSqlQuery = (query: string): { isValid: boolean; error?: string } =
   if (!query || typeof query !== 'string') {
     return { isValid: false, error: 'Query is required and must be a string' };
   }
-  
-  const trimmedQuery = query.trim();
+
+  // Strip comments
+  const noBlockComments = query.replace(/\/\*[\s\S]*?\*\//g, '');
+  const noLineComments = noBlockComments.replace(/--.*$/gm, '').replace(/#.*/g, '');
+
+  const trimmedQuery = noLineComments.trim();
   if (trimmedQuery.length === 0) {
     return { isValid: false, error: 'Query cannot be empty' };
   }
-  
-  // Basic SQL injection prevention - check for dangerous keywords
+
+  // Enforce single SELECT statement only
+  const lower = trimmedQuery.toLowerCase();
+  if (!lower.startsWith('select')) {
+    return { isValid: false, error: 'Only SELECT queries are allowed' };
+  }
+
+  // Disallow multiple statements via semicolons (except an optional trailing one)
+  const semicolonIndex = trimmedQuery.indexOf(';');
+  if (semicolonIndex !== -1 && semicolonIndex < trimmedQuery.length - 1) {
+    return { isValid: false, error: 'Multiple statements are not allowed' };
+  }
+
+  // Block common injection/dangerous patterns
   const dangerousPatterns = [
-    /\b(drop|delete|truncate|alter|create|grant|revoke)\b/i,
-    /;\s*drop\b/i,
-    /;\s*delete\b/i,
-    /union.*select/i,
-    /'.*;\s*--/i
+    /\b(drop|delete|truncate|alter|create|grant|revoke|insert|update|call|exec|execute)\b/i,
+    /union\s+all?\s+select/i,
+    /into\s+outfile/i,
+    /load_file\s*\(/i,
+    /sleep\s*\(/i,
+    /benchmark\s*\(/i,
+    /information_schema\./i,
   ];
-  
+
   for (const pattern of dangerousPatterns) {
     if (pattern.test(trimmedQuery)) {
       return { isValid: false, error: 'Query contains potentially dangerous operations' };
     }
   }
-  
+
   return { isValid: true };
 };
 
@@ -143,7 +162,9 @@ app.get('/', (req: Request, res: Response) => {
       'POST /api/settings/database',
       'POST /api/settings/database/test',
       'POST /api/settings/ai',
-      'POST /api/settings/ai/test'
+      'POST /api/settings/ai/test',
+      'GET /api/databases',
+      'POST /api/databases/:id/switch'
     ],
     database: pool ? 'connected' : 'not configured'
   });
@@ -469,6 +490,54 @@ app.post('/api/settings/ai/test', async (req: Request, res: Response) => {
   }
 });
 
+// Get all database configurations
+app.get('/api/databases', async (req: Request, res: Response) => {
+  try {
+    const databases = await databaseService.getDatabaseConfigs();
+    res.json(databases);
+  } catch (error: unknown) {
+    console.error('Error fetching database configs:', error);
+    res.status(500).json({ error: 'Failed to fetch database configurations' });
+  }
+});
+
+// Switch to a different database (make it the new default)
+app.post('/api/databases/:id/switch', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const databaseId = parseInt(id);
+    
+    if (isNaN(databaseId)) {
+      return res.status(400).json({ error: 'Invalid database ID' });
+    }
+    
+    // Get all databases and find the target one
+    const databases = await databaseService.getDatabaseConfigs();
+    const targetDb = databases.find((db: DatabaseConfig) => db.id === databaseId);
+    
+    if (!targetDb) {
+      return res.status(404).json({ error: 'Database configuration not found' });
+    }
+    
+    // Update the target database to be the default
+    const updatedConfig: Omit<DatabaseConfig, 'id'> = {
+      ...targetDb,
+      is_default: true
+    };
+    
+    await databaseService.saveDatabaseConfig(updatedConfig);
+    
+    res.json({ 
+      success: true, 
+      message: `Switched to database: ${targetDb.name}`,
+      database: updatedConfig
+    });
+  } catch (error: unknown) {
+    console.error('Error switching database:', error);
+    res.status(500).json({ error: 'Failed to switch database' });
+  }
+});
+
 // Generate query endpoint with OpenAI and fallback pattern matching
 app.post('/api/generate-query', async (req: Request, res: Response) => {
   try {
@@ -660,7 +729,7 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
             }
 
             // Add timeout for long-running queries
-            const queryPromise = connection.query(safeQuery);
+            const queryPromise = connection.execute(safeQuery);
             const timeoutPromise = new Promise((_, reject) => {
                 setTimeout(() => reject(new Error('Query timeout (30s)')), 30000);
             });

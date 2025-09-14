@@ -32,11 +32,15 @@ const createPool = () => {
 
 const createDestinationPool = async () => {
   const databaseConfig = await databaseService.getDefaultDatabaseConfig();
+  console.log('databaseConfig', databaseConfig);
   if (!databaseConfig) {
     console.warn('⚠️  Default database configuration not found. Query validation will not work.');
     return null;
   }
-  const databaseUrl = `${databaseConfig.host}:${databaseConfig.port}/${databaseConfig.database_name}`;
+  
+  const databaseUrl = `mysql://${databaseConfig.username}:${databaseConfig.password}@${databaseConfig.host}:${databaseConfig.port}/${databaseConfig.database_name}`;
+
+  console.log('databaseUrl', databaseUrl);
 
   try {
     return mysql.createPool(databaseUrl);
@@ -741,7 +745,8 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
 
             // 1. First validate syntax with EXPLAIN (dry run)
             const explainQuery = `EXPLAIN ${query.trim()}`;
-            await connection.query(explainQuery);
+            const explainResult = await connection.query(explainQuery);
+            console.log('explainResult', explainResult);
 
             // 2. If syntax validation passes, run the actual query with safety measures
             let safeQuery = query.trim();

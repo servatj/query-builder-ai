@@ -23,7 +23,8 @@
       "Bash(tar:*)",
       "Bash(mysql:*)",
       "Bash(docker exec:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(docker-compose:*)"
     ],
     "deny": []
   }

@@ -23,7 +23,7 @@ services:
 
   # Sakila Demo Database (separate container)
   mysql-sakila:
-    image: 1maa/sakila:latest
+    image: servatj/sakila-mysql:latest
     container_name: sakila
     restart: unless-stopped
     environment:
@@ -35,7 +35,7 @@ services:
       - "3310:3306"
     volumes:
       - sakila_data:/var/lib/mysql
-      
+
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
       timeout: 20s

@@ -13,7 +13,6 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./infra/mysql/init:/docker-entrypoint-initdb.d
     
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
@@ -24,8 +23,8 @@ services:
 
   # Sakila Demo Database (separate container)
   mysql-sakila:
-    image: mysql:9.4
-    container_name: query-builder-sakila
+    image: 1maa/sakila:latest
+    container_name: sakila
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -36,8 +35,7 @@ services:
       - "3310:3306"
     volumes:
       - sakila_data:/var/lib/mysql
-      - ./infra/mysql/sakila-init:/docker-entrypoint-initdb.d
-    
+      
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
       timeout: 20s

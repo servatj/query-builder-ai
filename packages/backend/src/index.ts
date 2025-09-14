@@ -5,8 +5,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import mysql from 'mysql2/promise';
 import openaiService, { AIConfig } from './services/openaiService';
-import databaseService, { DatabaseConfig, AISettingsDB } from './services/databaseSystemService';
-// import databaseDestinationService from './services/databaseDestinationService';
+import databaseService, { DatabaseConfig, AISettingsDB, } from './services/databaseSystemService';
+import databaseDestinationService from './services/databaseDestinationService';
 
 dotenv.config();
 
@@ -30,9 +30,32 @@ const createPool = () => {
   }
 };
 
-const pool = createPool();
+const createDestinationPool = async () => {
+  const databaseConfig = await databaseService.getDefaultDatabaseConfig();
+  if (!databaseConfig) {
+    console.warn('⚠️  Default database configuration not found. Query validation will not work.');
+    return null;
+  }
+  const databaseUrl = `${databaseConfig.host}:${databaseConfig.port}/${databaseConfig.database_name}`;
 
-// In-memory cache for rules (rules.json remains file-based as requested)
+  try {
+    return mysql.createPool(databaseUrl);
+  } catch (error: unknown) {
+    console.error('Failed to create destination database pool:', error);
+    return null;
+  }
+};
+
+let pool: mysql.Pool | null = null;
+let destinationPool: mysql.Pool | null = null;
+
+const bootStrap = async () => {
+  pool = await createPool();
+  destinationPool = await createDestinationPool();
+};
+
+bootStrap();
+
 let currentSettings: Rules | null = null;
 
 // Middleware
@@ -704,7 +727,7 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
         }
 
         // Check if database is available
-        if (!pool) {
+        if (!destinationPool) {
             return res.status(503).json({ 
                 isValid: false, 
                 error: 'Database not configured. Please set DATABASE_URL environment variable.',
@@ -714,7 +737,7 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
 
         let connection: mysql.PoolConnection | undefined;
         try {
-            connection = await pool.getConnection();
+            connection = await destinationPool.getConnection();
 
             // 1. First validate syntax with EXPLAIN (dry run)
             const explainQuery = `EXPLAIN ${query.trim()}`;
@@ -729,7 +752,7 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
             }
 
             // Add timeout for long-running queries
-            const queryPromise = connection.execute(safeQuery);
+            const queryPromise = destinationPool.execute(safeQuery);
             const timeoutPromise = new Promise((_, reject) => {
                 setTimeout(() => reject(new Error('Query timeout (30s)')), 30000);
             });

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { validateSql } from '../middleware/validation';
 import { validateQuery } from '../controllers/validationController';
+import { validateSql } from '../middleware/validation';
 
 const router = Router();
 

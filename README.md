@@ -35,7 +35,7 @@ query-builder/
 - Node.js with Express
 - TypeScript for type safety
 - MySQL2 for database connectivity
-- Jest for testing
+- Vitest for testing
 - Configurable query patterns in JSON
 
 ## 🚀 Quick Start

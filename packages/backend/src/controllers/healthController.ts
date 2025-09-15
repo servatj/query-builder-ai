@@ -14,15 +14,19 @@ export const getHealth = async (_req: Request, res: Response) => {
 
     const pool = getPool();
     if (pool) {
+      let connection: any;
       try {
-        const connection = await pool.getConnection();
+        connection = await pool.getConnection();
         await connection.ping();
-        connection.release();
         health.database = 'connected';
         health.services.database = 'connected';
       } catch {
         health.database = 'error';
         health.services.database = 'error';
+      } finally {
+        if (connection) {
+          connection.release();
+        }
       }
     }
     return res.json(health);

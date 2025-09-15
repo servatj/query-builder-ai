@@ -18,8 +18,9 @@ export const switchDatabase = async (req: Request, res: Response) => {
     const databases = await databaseService.getDatabaseConfigs();
     const targetDb = databases.find((db: DatabaseConfig) => db.id === databaseId);
     if (!targetDb) return res.status(404).json({ error: 'Database configuration not found' });
-    const updatedConfig: Omit<DatabaseConfig, 'id'> = { ...targetDb, is_default: true };
-    await databaseService.saveDatabaseConfig(updatedConfig);
+    const { id: _, ...updatedConfig } = targetDb;
+    updatedConfig.is_default = true;
+    await databaseService.saveDatabaseConfig(updatedConfig as any);
     return res.json({ success: true, message: `Switched to database: ${targetDb.name}`, database: updatedConfig });
   } catch {
     return res.status(500).json({ error: 'Failed to switch database' });

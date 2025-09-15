@@ -1,17 +1,22 @@
-// utils/logger.ts
-// Simple logger utility
+import winston from 'winston';
 
-export const logger = {
-  info: (message: string, ...optionalParams: unknown[]) => {
-    console.info(`[Info]: ${message}`, ...optionalParams);
-  },
-  warn: (message: string, ...optionalParams: unknown[]) => {
-    console.warn(`[Warn]: ${message}`, ...optionalParams);
-  },
-  error: (message: string, ...optionalParams: unknown[]) => {
-    console.error(`[Error]: ${message}`, ...optionalParams);
-  },
-  debug: (message: string, ...optionalParams: unknown[]) => {
-    console.debug(`[Debug]: ${message}`, ...optionalParams);
-  },
-};
+const logger = winston.createLogger({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  ]
+});
+
+export default logger;

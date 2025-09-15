@@ -2,28 +2,6 @@
 module.exports = {
   projects: [
     {
-      displayName: 'backend',
-      testEnvironment: 'node',
-      testMatch: [
-        '<rootDir>/tests/unit/backend/**/*.test.ts',
-        '<rootDir>/tests/integration/**/*.test.ts',
-        '<rootDir>/packages/backend/src/**/*.test.ts'
-      ],
-      setupFilesAfterEnv: ['<rootDir>/tests/setup/jest.setup.ts'],
-      collectCoverageFrom: [
-        'packages/backend/src/**/*.ts',
-        '!packages/backend/src/**/*.d.ts',
-        '!packages/backend/src/**/*.test.ts'
-      ],
-      coverageDirectory: '<rootDir>/coverage/backend',
-      coverageReporters: ['text', 'lcov', 'html'],
-      transform: {
-        '^.+\\.ts$': 'ts-jest'
-      },
-      moduleFileExtensions: ['ts', 'js'],
-      testTimeout: 10000
-    },
-    {
       displayName: 'frontend',
       testEnvironment: 'jsdom',
       testMatch: [

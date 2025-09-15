@@ -1,39 +1,66 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { initPools, getSystemPool, getDestinationPool, getSystemService } from './config/database';
-import { loadRulesFromFile, saveRulesToFile, Rules, QueryPattern } from './config/rules';
-import openaiService, { AIConfig } from './services/openaiService';
-import DatabaseSystemService from './services/databaseSystemService';
-import DatabaseDestinationService from './services/databaseDestinationService';
-import { DatabaseConfig, AISettingsDB } from './services/databaseSystemService';
+import path from 'path';
+import fs from 'fs/promises';
 import mysql from 'mysql2/promise';
+import openaiService, { AIConfig } from './services/openaiService';
+import databaseService, { DatabaseConfig, AISettingsDB, } from './services/databaseSystemService';
+import databaseDestinationService from './services/databaseDestinationService';
 
 dotenv.config();
-
-let systemService: DatabaseSystemService | null = null;
-let destinationService: DatabaseDestinationService | null = null;
-let currentSettings: Rules | null = null;
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
 
-const bootStrap = async () => {
-  await initPools();
-  systemService = getSystemService();
-  if (getDestinationPool()) {
-    destinationService = new DatabaseDestinationService(getDestinationPool()!);
+// Create a MySQL connection pool with error handling
+const createPool = () => {
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  if (!databaseUrl) {
+    console.warn('⚠️  DATABASE_URL not configured. Query validation will not work.');
+    return null;
+  }
+
+  try {
+    return mysql.createPool(databaseUrl);
+  } catch (error: unknown) {
+    console.error('Failed to create database pool:', error);
+    return null;
   }
 };
 
-bootStrap().then(() => {
-  app.listen(port, () => {
-    console.log(`[server]: Server is running at http://localhost:${port}`);
-  });
-}).catch((error) => {
-  console.error('Failed to bootstrap application:', error);
-  process.exit(1);
-});
+const createDestinationPool = async () => {
+  const databaseConfig = await databaseService.getDefaultDatabaseConfig();
+  console.log('databaseConfig', databaseConfig);
+  if (!databaseConfig) {
+    console.warn('⚠️  Default database configuration not found. Query validation will not work.');
+    return null;
+  }
+  
+  const databaseUrl = `mysql://${databaseConfig.username}:${databaseConfig.password}@${databaseConfig.host}:${databaseConfig.port}/${databaseConfig.database_name}`;
+
+  console.log('databaseUrl', databaseUrl);
+
+  try {
+    return mysql.createPool(databaseUrl);
+  } catch (error: unknown) {
+    console.error('Failed to create destination database pool:', error);
+    return null;
+  }
+};
+
+let pool: mysql.Pool | null = null;
+let destinationPool: mysql.Pool | null = null;
+
+const bootStrap = async () => {
+  pool = await createPool();
+  destinationPool = await createDestinationPool();
+};
+
+bootStrap();
+
+let currentSettings: Rules | null = null;
 
 // Middleware
 app.use(cors());
@@ -55,9 +82,34 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+// Define types for our rules file
+interface QueryPattern {
+  intent: string;
+  template: string;
+  description: string;
+  keywords: string[];
+  examples?: string[];
+}
+
+interface Rules {
+  schema: Record<string, { columns: string[]; description: string; }>;
+  query_patterns: QueryPattern[];
+}
+
 // Helper functions
 const sanitizeInput = (input: string): string => {
   return input.trim().toLowerCase().replace(/[^\w\s]/g, '');
+};
+
+const loadRulesFromFile = async (): Promise<Rules> => {
+  const rulesPath = path.join(__dirname, 'rules.json');
+  const rulesFile = await fs.readFile(rulesPath, 'utf-8');
+  return JSON.parse(rulesFile);
+};
+
+const saveRulesToFile = async (rules: Rules): Promise<void> => {
+  const rulesPath = path.join(__dirname, 'rules.json');
+  await fs.writeFile(rulesPath, JSON.stringify(rules, null, 2), 'utf-8');
 };
 
 const validatePrompt = (prompt: string): { isValid: boolean; error?: string } => {
@@ -141,7 +193,7 @@ app.get('/', (req: Request, res: Response) => {
       'GET /api/databases',
       'POST /api/databases/:id/switch'
     ],
-    database: getSystemPool() ? 'connected' : 'not configured'
+    database: pool ? 'connected' : 'not configured'
   });
 });
 
@@ -160,9 +212,9 @@ app.get('/api/health', async (req: Request, res: Response) => {
     };
 
     // Check database
-    if (getSystemPool()) {
+    if (pool) {
       try {
-        const connection = await getSystemPool()!.getConnection();
+        const connection = await pool.getConnection();
         await connection.ping();
         connection.release();
         health.database = 'connected';
@@ -217,8 +269,8 @@ app.get('/api/settings', async (req: Request, res: Response) => {
     const rules = currentSettings || await loadRulesFromFile();
     
     // Get database and AI settings from database
-    const defaultDbConfig = await systemService!.getDefaultDatabaseConfig();
-    const defaultAiConfig = await systemService!.getDefaultAISettings();
+    const defaultDbConfig = await databaseService.getDefaultDatabaseConfig();
+    const defaultAiConfig = await databaseService.getDefaultAISettings();
     
     res.json({
       rules,
@@ -306,7 +358,7 @@ app.post('/api/settings/database', async (req: Request, res: Response) => {
       is_default: true // Make this the new default
     };
     
-    await systemService!.saveDatabaseConfig(dbConfig);
+    await databaseService.saveDatabaseConfig(dbConfig);
     
     res.json({ 
       success: true, 
@@ -394,7 +446,7 @@ app.post('/api/settings/ai', async (req: Request, res: Response) => {
       is_default: true // Make this the new default
     };
     
-    await systemService!.saveAISettings(aiSettings);
+    await databaseService.saveAISettings(aiSettings);
     
     // Update the OpenAI service with new settings
     if (enabled && apiKey) {
@@ -468,7 +520,7 @@ app.post('/api/settings/ai/test', async (req: Request, res: Response) => {
 // Get all database configurations
 app.get('/api/databases', async (req: Request, res: Response) => {
   try {
-    const databases = await systemService!.getDatabaseConfigs();
+    const databases = await databaseService.getDatabaseConfigs();
     res.json(databases);
   } catch (error: unknown) {
     console.error('Error fetching database configs:', error);
@@ -487,7 +539,7 @@ app.post('/api/databases/:id/switch', async (req: Request, res: Response) => {
     }
     
     // Get all databases and find the target one
-    const databases = await systemService!.getDatabaseConfigs();
+    const databases = await databaseService.getDatabaseConfigs();
     const targetDb = databases.find((db: DatabaseConfig) => db.id === databaseId);
     
     if (!targetDb) {
@@ -500,7 +552,7 @@ app.post('/api/databases/:id/switch', async (req: Request, res: Response) => {
       is_default: true
     };
     
-    await systemService!.saveDatabaseConfig(updatedConfig);
+    await databaseService.saveDatabaseConfig(updatedConfig);
     
     res.json({ 
       success: true, 
@@ -679,7 +731,7 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
         }
 
         // Check if database is available
-        if (!getDestinationPool()) {
+        if (!destinationPool) {
             return res.status(503).json({ 
                 isValid: false, 
                 error: 'Database not configured. Please set DATABASE_URL environment variable.',
@@ -689,7 +741,7 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
 
         let connection: mysql.PoolConnection | undefined;
         try {
-            connection = await getDestinationPool()!.getConnection();
+            connection = await destinationPool.getConnection();
 
             // 1. First validate syntax with EXPLAIN (dry run)
             const explainQuery = `EXPLAIN ${query.trim()}`;
@@ -705,7 +757,7 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
             }
 
             // Add timeout for long-running queries
-            const queryPromise = getDestinationPool()!.execute(safeQuery);
+            const queryPromise = destinationPool.execute(safeQuery);
             const timeoutPromise = new Promise((_, reject) => {
                 setTimeout(() => reject(new Error('Query timeout (30s)')), 30000);
             });
@@ -730,8 +782,8 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
             
             // Distinguish between syntax errors and execution errors
             const isSyntaxError = error.code === 'ER_PARSE_ERROR' || 
-                                  error.message.includes('syntax') ||
-                                  error.message.includes('SQL syntax');
+                                error.message.includes('syntax') ||
+                                error.message.includes('SQL syntax');
             
             res.status(400).json({ 
                 isValid: false,
@@ -757,6 +809,10 @@ app.post('/api/validate-query', async (req: Request, res: Response) => {
             message: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
+});
+
+app.listen(port, () => {
+  console.log(`[server]: Server is running at http://localhost:${port}`);
 });
 
 export default app;

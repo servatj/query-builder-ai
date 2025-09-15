@@ -1,18 +1,33 @@
 import mysql from 'mysql2/promise';
 import { AIConfig } from './openaiService';
 
-class DatabaseDestinationService {
-  private pool: mysql.Pool;
 
-  constructor(pool: mysql.Pool) {
-    if (!pool) {
-      throw new Error('Pool is required for DatabaseDestinationService');
+class DatabaseDestinationService {
+  private pool: mysql.Pool | null = null;
+  private settingsDbUrl: string;
+
+  constructor() {
+    
+    this.settingsDbUrl = process.env.SETTINGS_DATABASE_URL || 
+      'mysql://queryuser:querypass@localhost:3310/sakila';
+    
+    this.initializePool();
+  }
+
+  private async initializePool() {
+    try {
+      this.pool = mysql.createPool(this.settingsDbUrl);
+      console.log('✅ Database service initialized for destination storage');
+    } catch (error) {
+      console.error('❌ Failed to initialize settings database pool:', error);
+      this.pool = null;
     }
-    this.pool = pool;
-    console.log('✅ DatabaseDestinationService initialized with provided pool');
   }
 
   private async getConnection(): Promise<mysql.PoolConnection> {
+    if (!this.pool) {
+      throw new Error('Database pool not initialized');
+    }
     return await this.pool.getConnection();
   }
 
@@ -63,6 +78,15 @@ class DatabaseDestinationService {
     }
   }
 
+  // Close the pool
+  async close(): Promise<void> {
+    if (this.pool) {
+      await this.pool.end();
+      this.pool = null;
+    }
+  }
 }
 
-export default DatabaseDestinationService;
+// Export singleton instance
+export const databaseService = new DatabaseDestinationService();
+export default databaseService;

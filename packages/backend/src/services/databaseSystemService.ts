@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
 import { AIConfig } from './openaiService';
 
-export interface DatabaseConfig {
+interface DatabaseConfig {
   id?: number;
   name: string;
   host: string;
@@ -14,14 +14,14 @@ export interface DatabaseConfig {
   is_default: boolean;
 }
 
-export interface AISettingsDB extends AIConfig {
+interface AISettingsDB extends AIConfig {
   id?: number;
   name: string;
   is_active: boolean;
   is_default: boolean;
 }
 
-export interface AppSetting {
+interface AppSetting {
   id?: number;
   setting_key: string;
   setting_value: string;
@@ -31,17 +31,31 @@ export interface AppSetting {
 }
 
 class DatabaseSystemService {
-  private pool: mysql.Pool;
+  private pool: mysql.Pool | null = null;
+  private settingsDbUrl: string;
 
-  constructor(pool: mysql.Pool) {
-    if (!pool) {
-      throw new Error('Pool is required for DatabaseSystemService');
+  constructor() {
+    // Connection to the query_builder database for settings storage
+    this.settingsDbUrl = process.env.SETTINGS_DATABASE_URL || 
+      'mysql://queryuser:querypass@localhost:3306/query_builder';
+    
+    this.initializePool();
+  }
+
+  private async initializePool() {
+    try {
+      this.pool = mysql.createPool(this.settingsDbUrl);
+      console.log('✅ Database service initialized for settings storage');
+    } catch (error) {
+      console.error('❌ Failed to initialize settings database pool:', error);
+      this.pool = null;
     }
-    this.pool = pool;
-    console.log('✅ DatabaseSystemService initialized with provided pool');
   }
 
   private async getConnection(): Promise<mysql.PoolConnection> {
+    if (!this.pool) {
+      throw new Error('Database pool not initialized');
+    }
     return await this.pool.getConnection();
   }
 
@@ -272,6 +286,16 @@ class DatabaseSystemService {
     }
   }
 
+  // Close the pool
+  async close(): Promise<void> {
+    if (this.pool) {
+      await this.pool.end();
+      this.pool = null;
+    }
+  }
 }
 
-export default DatabaseSystemService;
+// Export singleton instance
+export const databaseService = new DatabaseSystemService();
+export default databaseService;
+export type { DatabaseConfig, AISettingsDB, AppSetting };

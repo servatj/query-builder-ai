@@ -175,141 +175,364 @@
       "intent": "get_all_films",
       "template": "SELECT film_id, title, release_year, rating, rental_rate FROM film ORDER BY title ASC LIMIT 50",
       "description": "Retrieves all films with basic information, ordered by title.",
-      "keywords": ["films", "movies", "all", "list", "show", "display"],
-      "examples": ["Show all films", "List all movies", "Get all films", "Display movies"]
+      "keywords": [
+        "films",
+        "movies",
+        "all",
+        "list",
+        "show",
+        "display"
+      ],
+      "examples": [
+        "Show all films",
+        "List all movies",
+        "Get all films",
+        "Display movies"
+      ]
     },
     {
       "intent": "find_films_by_rating",
       "template": "SELECT film_id, title, release_year, rental_rate FROM film WHERE rating = '?' ORDER BY title ASC",
       "description": "Finds films by their rating (G, PG, PG-13, R, NC-17).",
-      "keywords": ["films", "rating", "rated", "G", "PG", "R", "NC-17"],
-      "examples": ["Films rated PG", "Show R-rated movies", "PG-13 films"]
+      "keywords": [
+        "films",
+        "rating",
+        "rated",
+        "G",
+        "PG",
+        "R",
+        "NC-17"
+      ],
+      "examples": [
+        "Films rated PG",
+        "Show R-rated movies",
+        "PG-13 films"
+      ]
     },
     {
       "intent": "films_by_category",
       "template": "SELECT f.film_id, f.title, f.release_year, c.name as category FROM film f JOIN film_category fc ON f.film_id = fc.film_id JOIN category c ON fc.category_id = c.category_id WHERE c.name = '?' ORDER BY f.title ASC",
       "description": "Finds films in a specific category/genre.",
-      "keywords": ["films", "category", "genre", "action", "comedy", "drama", "horror"],
-      "examples": ["Action films", "Comedy movies", "Horror films", "Drama category"]
+      "keywords": [
+        "films",
+        "category",
+        "genre",
+        "action",
+        "comedy",
+        "drama",
+        "horror"
+      ],
+      "examples": [
+        "Action films",
+        "Comedy movies",
+        "Horror films",
+        "Drama category"
+      ]
     },
     {
       "intent": "films_by_actor",
       "template": "SELECT f.film_id, f.title, f.release_year FROM film f JOIN film_actor fa ON f.film_id = fa.film_id JOIN actor a ON fa.actor_id = a.actor_id WHERE a.first_name LIKE '%?%' OR a.last_name LIKE '%?%' ORDER BY f.title ASC",
       "description": "Finds films featuring a specific actor.",
-      "keywords": ["films", "actor", "starring", "featuring", "with"],
-      "examples": ["Films with John", "Movies starring Smith", "Films featuring Tom"]
+      "keywords": [
+        "films",
+        "actor",
+        "starring",
+        "featuring",
+        "with"
+      ],
+      "examples": [
+        "Films with John",
+        "Movies starring Smith",
+        "Films featuring Tom"
+      ]
     },
     {
       "intent": "top_rented_films",
       "template": "SELECT f.title, f.release_year, COUNT(r.rental_id) as rental_count FROM film f JOIN inventory i ON f.film_id = i.film_id JOIN rental r ON i.inventory_id = r.inventory_id GROUP BY f.film_id, f.title, f.release_year ORDER BY rental_count DESC LIMIT ?",
       "description": "Shows the most frequently rented films.",
-      "keywords": ["top", "most", "popular", "rented", "films", "best"],
-      "examples": ["Top 10 rented films", "Most popular movies", "Best rented films"]
+      "keywords": [
+        "top",
+        "most",
+        "popular",
+        "rented",
+        "films",
+        "best"
+      ],
+      "examples": [
+        "Top 10 rented films",
+        "Most popular movies",
+        "Best rented films"
+      ]
     },
     {
       "intent": "customer_rental_history",
       "template": "SELECT c.first_name, c.last_name, f.title, r.rental_date, r.return_date FROM customer c JOIN rental r ON c.customer_id = r.customer_id JOIN inventory i ON r.inventory_id = i.inventory_id JOIN film f ON i.film_id = f.film_id WHERE c.first_name LIKE '%?%' OR c.last_name LIKE '%?%' ORDER BY r.rental_date DESC",
       "description": "Shows rental history for a specific customer.",
-      "keywords": ["customer", "rental", "history", "rented", "by"],
-      "examples": ["Rentals by John Smith", "Customer rental history", "Movies rented by Mary"]
+      "keywords": [
+        "customer",
+        "rental",
+        "history",
+        "rented",
+        "by"
+      ],
+      "examples": [
+        "Rentals by John Smith",
+        "Customer rental history",
+        "Movies rented by Mary"
+      ]
     },
     {
       "intent": "films_by_length",
       "template": "SELECT film_id, title, length, rating FROM film WHERE length BETWEEN ? AND ? ORDER BY length ASC",
       "description": "Finds films within a specific duration range (in minutes).",
-      "keywords": ["films", "length", "duration", "minutes", "short", "long", "between"],
-      "examples": ["Films between 90 and 120 minutes", "Short films under 90 minutes", "Long movies over 150 minutes"]
+      "keywords": [
+        "films",
+        "length",
+        "duration",
+        "minutes",
+        "short",
+        "long",
+        "between"
+      ],
+      "examples": [
+        "Films between 90 and 120 minutes",
+        "Short films under 90 minutes",
+        "Long movies over 150 minutes"
+      ]
     },
     {
       "intent": "revenue_by_film",
       "template": "SELECT f.title, f.rental_rate, COUNT(r.rental_id) as times_rented, SUM(p.amount) as total_revenue FROM film f JOIN inventory i ON f.film_id = i.film_id JOIN rental r ON i.inventory_id = r.inventory_id JOIN payment p ON r.rental_id = p.rental_id GROUP BY f.film_id, f.title, f.rental_rate ORDER BY total_revenue DESC LIMIT ?",
       "description": "Shows revenue generated by each film.",
-      "keywords": ["revenue", "earnings", "income", "profit", "money", "by", "film"],
-      "examples": ["Top revenue films", "Most profitable movies", "Films by earnings"]
+      "keywords": [
+        "revenue",
+        "earnings",
+        "income",
+        "profit",
+        "money",
+        "by",
+        "film"
+      ],
+      "examples": [
+        "Top revenue films",
+        "Most profitable movies",
+        "Films by earnings"
+      ]
     },
     {
       "intent": "customers_by_city",
       "template": "SELECT ci.city, co.country, COUNT(c.customer_id) as customer_count FROM customer c JOIN address a ON c.address_id = a.address_id JOIN city ci ON a.city_id = ci.city_id JOIN country co ON ci.country_id = co.country_id WHERE ci.city = '?' GROUP BY ci.city, co.country",
       "description": "Shows number of customers in a specific city.",
-      "keywords": ["customers", "city", "location", "from", "in"],
-      "examples": ["Customers in London", "How many customers in Paris", "Customers from Tokyo"]
+      "keywords": [
+        "customers",
+        "city",
+        "location",
+        "from",
+        "in"
+      ],
+      "examples": [
+        "Customers in London",
+        "How many customers in Paris",
+        "Customers from Tokyo"
+      ]
     },
     {
       "intent": "staff_sales_performance",
       "template": "SELECT s.first_name, s.last_name, COUNT(p.payment_id) as total_transactions, SUM(p.amount) as total_sales FROM staff s JOIN payment p ON s.staff_id = p.staff_id GROUP BY s.staff_id, s.first_name, s.last_name ORDER BY total_sales DESC",
       "description": "Shows sales performance for each staff member.",
-      "keywords": ["staff", "sales", "performance", "employee", "transactions"],
-      "examples": ["Staff sales performance", "Top selling employees", "Sales by staff"]
+      "keywords": [
+        "staff",
+        "sales",
+        "performance",
+        "employee",
+        "transactions"
+      ],
+      "examples": [
+        "Staff sales performance",
+        "Top selling employees",
+        "Sales by staff"
+      ]
     },
     {
       "intent": "inventory_by_store",
       "template": "SELECT s.store_id, a.address, a.district, ci.city, COUNT(i.inventory_id) as inventory_count FROM store s JOIN address a ON s.address_id = a.address_id JOIN city ci ON a.city_id = ci.city_id JOIN inventory i ON s.store_id = i.store_id GROUP BY s.store_id, a.address, a.district, ci.city ORDER BY inventory_count DESC",
       "description": "Shows inventory count by store location.",
-      "keywords": ["inventory", "store", "stock", "location", "count"],
-      "examples": ["Inventory by store", "Stock count per location", "Store inventory levels"]
+      "keywords": [
+        "inventory",
+        "store",
+        "stock",
+        "location",
+        "count"
+      ],
+      "examples": [
+        "Inventory by store",
+        "Stock count per location",
+        "Store inventory levels"
+      ]
     },
     {
       "intent": "overdue_rentals",
       "template": "SELECT c.first_name, c.last_name, f.title, r.rental_date, DATEDIFF(NOW(), r.rental_date) as days_overdue FROM rental r JOIN customer c ON r.customer_id = c.customer_id JOIN inventory i ON r.inventory_id = i.inventory_id JOIN film f ON i.film_id = f.film_id WHERE r.return_date IS NULL AND DATEDIFF(NOW(), r.rental_date) > f.rental_duration ORDER BY days_overdue DESC",
       "description": "Shows overdue rentals that haven't been returned.",
-      "keywords": ["overdue", "late", "unreturned", "rentals", "not", "returned"],
-      "examples": ["Overdue rentals", "Late returns", "Unreturned movies"]
+      "keywords": [
+        "overdue",
+        "late",
+        "unreturned",
+        "rentals",
+        "not",
+        "returned"
+      ],
+      "examples": [
+        "Overdue rentals",
+        "Late returns",
+        "Unreturned movies"
+      ]
     },
     {
       "intent": "actors_by_film_count",
       "template": "SELECT a.actor_id, a.first_name, a.last_name, COUNT(fa.film_id) as film_count FROM actor a JOIN film_actor fa ON a.actor_id = fa.actor_id GROUP BY a.actor_id, a.first_name, a.last_name ORDER BY film_count DESC LIMIT ?",
       "description": "Shows actors ranked by number of films they appear in.",
-      "keywords": ["actors", "most", "films", "prolific", "top", "by", "count"],
-      "examples": ["Top 10 prolific actors", "Actors with most films", "Most active actors"]
+      "keywords": [
+        "actors",
+        "most",
+        "films",
+        "prolific",
+        "top",
+        "by",
+        "count"
+      ],
+      "examples": [
+        "Top 10 prolific actors",
+        "Actors with most films",
+        "Most active actors"
+      ]
     },
     {
       "intent": "recent_rentals",
       "template": "SELECT c.first_name, c.last_name, f.title, r.rental_date, s.first_name as staff_name FROM rental r JOIN customer c ON r.customer_id = c.customer_id JOIN inventory i ON r.inventory_id = i.inventory_id JOIN film f ON i.film_id = f.film_id JOIN staff s ON r.staff_id = s.staff_id WHERE r.rental_date >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY r.rental_date DESC",
       "description": "Shows recent rentals within the last N days.",
-      "keywords": ["recent", "rentals", "last", "days", "today", "yesterday", "week"],
-      "examples": ["Recent rentals", "Rentals from last week", "Today's rentals"]
+      "keywords": [
+        "recent",
+        "rentals",
+        "last",
+        "days",
+        "today",
+        "yesterday",
+        "week"
+      ],
+      "examples": [
+        "Recent rentals",
+        "Rentals from last week",
+        "Today's rentals"
+      ]
     },
     {
       "intent": "films_by_language",
       "template": "SELECT f.film_id, f.title, f.release_year, l.name as language FROM film f JOIN language l ON f.language_id = l.language_id WHERE l.name = '?' ORDER BY f.title ASC",
       "description": "Finds films in a specific language.",
-      "keywords": ["films", "language", "spoken", "in"],
-      "examples": ["Films in English", "Spanish movies", "French films"]
+      "keywords": [
+        "films",
+        "language",
+        "spoken",
+        "in"
+      ],
+      "examples": [
+        "Films in English",
+        "Spanish movies",
+        "French films"
+      ]
     },
     {
       "intent": "payment_summary_by_date",
       "template": "SELECT DATE(p.payment_date) as payment_day, COUNT(p.payment_id) as transaction_count, SUM(p.amount) as daily_revenue FROM payment p WHERE p.payment_date >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY DATE(p.payment_date) ORDER BY payment_day DESC",
       "description": "Shows daily payment summary for the last N days.",
-      "keywords": ["payments", "daily", "revenue", "summary", "by", "date"],
-      "examples": ["Daily revenue last 30 days", "Payment summary by date", "Daily sales"]
+      "keywords": [
+        "payments",
+        "daily",
+        "revenue",
+        "summary",
+        "by",
+        "date"
+      ],
+      "examples": [
+        "Daily revenue last 30 days",
+        "Payment summary by date",
+        "Daily sales"
+      ]
     },
     {
       "intent": "customer_activity_status",
       "template": "SELECT c.customer_id, c.first_name, c.last_name, c.email, c.active, MAX(r.rental_date) as last_rental FROM customer c LEFT JOIN rental r ON c.customer_id = r.customer_id WHERE c.active = ? GROUP BY c.customer_id, c.first_name, c.last_name, c.email, c.active ORDER BY last_rental DESC NULLS LAST",
       "description": "Shows customer activity status (active/inactive) with last rental date.",
-      "keywords": ["customers", "active", "inactive", "status", "last", "rental"],
-      "examples": ["Active customers", "Inactive customers", "Customer status"]
+      "keywords": [
+        "customers",
+        "active",
+        "inactive",
+        "status",
+        "last",
+        "rental"
+      ],
+      "examples": [
+        "Active customers",
+        "Inactive customers",
+        "Customer status"
+      ]
     },
     {
       "intent": "films_by_rental_rate",
       "template": "SELECT film_id, title, rental_rate, rating, length FROM film WHERE rental_rate BETWEEN ? AND ? ORDER BY rental_rate ASC",
       "description": "Finds films within a specific rental rate range.",
-      "keywords": ["films", "rental", "rate", "price", "cost", "cheap", "expensive", "between"],
-      "examples": ["Cheap films under $2", "Films between $2 and $4", "Expensive rentals over $4"]
+      "keywords": [
+        "films",
+        "rental",
+        "rate",
+        "price",
+        "cost",
+        "cheap",
+        "expensive",
+        "between"
+      ],
+      "examples": [
+        "Cheap films under $2",
+        "Films between $2 and $4",
+        "Expensive rentals over $4"
+      ]
     },
     {
       "intent": "search_films_by_title",
       "template": "SELECT film_id, title, description, release_year, rating FROM film WHERE title LIKE '%?%' OR description LIKE '%?%' ORDER BY title ASC",
       "description": "Searches for films by title or description keywords.",
-      "keywords": ["search", "find", "films", "title", "contains", "about"],
-      "examples": ["Search for 'love' in titles", "Films about 'adventure'", "Find films containing 'war'"]
+      "keywords": [
+        "search",
+        "find",
+        "films",
+        "title",
+        "contains",
+        "about"
+      ],
+      "examples": [
+        "Search for 'love' in titles",
+        "Films about 'adventure'",
+        "Find films containing 'war'"
+      ]
     },
     {
       "intent": "category_popularity",
       "template": "SELECT c.name as category, COUNT(r.rental_id) as total_rentals, AVG(f.rental_rate) as avg_rental_rate FROM category c JOIN film_category fc ON c.category_id = fc.category_id JOIN film f ON fc.film_id = f.film_id JOIN inventory i ON f.film_id = i.film_id JOIN rental r ON i.inventory_id = r.inventory_id GROUP BY c.category_id, c.name ORDER BY total_rentals DESC",
       "description": "Shows category popularity based on rental frequency.",
-      "keywords": ["category", "popular", "genre", "most", "rented", "popularity"],
-      "examples": ["Most popular categories", "Genre popularity", "Top rented categories"]
+      "keywords": [
+        "category",
+        "popular",
+        "genre",
+        "most",
+        "rented",
+        "popularity"
+      ],
+      "examples": [
+        "Most popular categories",
+        "Genre popularity",
+        "Top rented categories"
+      ]
     }
   ]
 }

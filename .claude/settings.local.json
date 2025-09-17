@@ -24,7 +24,9 @@
       "Bash(mysql:*)",
       "Bash(docker exec:*)",
       "Bash(curl:*)",
-      "Bash(docker-compose:*)"
+      "Bash(docker-compose:*)",
+      "Bash(find:*)",
+      "mcp__ide__executeCode"
     ],
     "deny": []
   }

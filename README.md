@@ -1,5 +1,8 @@
 # AI Query Builder 🚀
 
+<img width="1569" height="967" alt="image" src="https://github.com/user-attachments/assets/02358333-6c74-49db-a1b0-bcb07368b9d1" />
+
+
 A modern full-stack application that converts natural language prompts into validated SQL queries. Built with React, TypeScript, Tailwind CSS, shadcn/ui, and Node.js in a monorepo structure.
 
 ## ✨ Features

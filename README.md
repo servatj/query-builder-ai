@@ -14,6 +14,18 @@ A modern full-stack application that converts natural language prompts into vali
 - **Type Safety**: Full TypeScript support across frontend and backend
 - **Pattern Matching**: Intelligent query generation using configurable rules and patterns
 
+## 📚 Documentation
+
+**📖 [Complete Documentation](https://joseps-personal-organization.gitbook.io/query-builder-ai/)**
+
+Visit our comprehensive GitBook documentation for:
+- **[Getting Started](https://joseps-personal-organization.gitbook.io/query-builder-ai/getting-started/installation-and-setup)** - Installation and setup guide
+- **[User Guide](https://joseps-personal-organization.gitbook.io/query-builder-ai/user-guide/using-the-query-builder)** - How to use the application effectively
+- **[API Reference](https://joseps-personal-organization.gitbook.io/query-builder-ai/technical-documentation/api-reference)** - Backend API documentation
+- **[Architecture](https://joseps-personal-organization.gitbook.io/query-builder-ai/technical-documentation/architecture-overview)** - Technical architecture and design decisions
+- **[Development](https://joseps-personal-organization.gitbook.io/query-builder-ai/development/development-setup)** - Development setup and contribution guide
+- **[Deployment](https://joseps-personal-organization.gitbook.io/query-builder-ai/deployment/production-deployment)** - Production deployment instructions
+
 ## 📁 Monorepo Structure
 
 ```
@@ -92,6 +104,8 @@ query-builder/
 
 5. **Open your browser:**
    Navigate to `http://localhost:5173` to use the application
+
+> **💡 For detailed setup instructions, troubleshooting, and advanced configuration, see our [Getting Started Guide](https://joseps-personal-organization.gitbook.io/query-builder-ai/getting-started/installation-and-setup).**
 
 ## 📖 Usage Guide
 
@@ -244,6 +258,8 @@ Edit `packages/backend/src/rules.json` to add new patterns:
 }
 ```
 
+> **📚 For comprehensive development guidelines, testing strategies, and contribution workflows, see our [Development Guide](https://joseps-personal-organization.gitbook.io/query-builder-ai/development/development-setup).**
+
 ## 🚀 Deployment
 
 
@@ -260,6 +276,8 @@ cd packages/frontend
 npm run build
 # Deploy the dist/ folder to your static hosting service
 ```
+
+> **🚀 For production deployment guides including Docker, AWS, GCP, and Azure, see our [Deployment Guide](https://joseps-personal-organization.gitbook.io/query-builder-ai/deployment/production-deployment).**
 
 ## 🤝 Contributing
 

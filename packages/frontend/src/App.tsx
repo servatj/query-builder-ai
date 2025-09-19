@@ -56,32 +56,48 @@ function App() {
   // New: store schema from backend
   const [schema, setSchema] = useState<BackendSchema | null>(null);
 
+  // Function to load patterns and schema
+  const loadPatternsAndSchema = async () => {
+    try {
+      // Load available patterns (also includes schema)
+      const patternsResponse = await axios.get(`${API_BASE_URL}/api/patterns`);
+      setAvailablePatterns(patternsResponse.data.patterns || []);
+      if (patternsResponse.data.schema) {
+        setSchema(patternsResponse.data.schema as BackendSchema);
+      }
+
+      // Check health status
+      const healthResponse = await axios.get(`${API_BASE_URL}/api/health`);
+      setHealthStatus(healthResponse.data);
+    } catch (err) {
+      console.warn('Failed to load initial data:', err);
+      // Set a default health status if we can't reach the backend
+      setHealthStatus({
+        status: 'unreachable',
+        database: 'unknown',
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
   // Load available patterns and health status on component mount
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        // Load available patterns (also includes schema)
-        const patternsResponse = await axios.get(`${API_BASE_URL}/api/patterns`);
-        setAvailablePatterns(patternsResponse.data.patterns || []);
-        if (patternsResponse.data.schema) {
-          setSchema(patternsResponse.data.schema as BackendSchema);
-        }
+    loadPatternsAndSchema();
+  }, []);
 
-        // Check health status
-        const healthResponse = await axios.get(`${API_BASE_URL}/api/health`);
-        setHealthStatus(healthResponse.data);
-      } catch (err) {
-        console.warn('Failed to load initial data:', err);
-        // Set a default health status if we can't reach the backend
-        setHealthStatus({
-          status: 'unreachable',
-          database: 'unknown',
-          timestamp: new Date().toISOString()
-        });
-      }
+  // Listen for database switch events to refresh schema
+  useEffect(() => {
+    const handleDatabaseSwitch = (event: CustomEvent) => {
+      console.log('Database switched to:', event.detail.databaseName);
+      // Refresh patterns and schema when database is switched
+      loadPatternsAndSchema();
     };
 
-    loadInitialData();
+    window.addEventListener('databaseSwitched', handleDatabaseSwitch as EventListener);
+    
+    return () => {
+      window.removeEventListener('databaseSwitched', handleDatabaseSwitch as EventListener);
+    };
   }, []);
 
   const handleGenerateQuery = async () => {
@@ -447,7 +463,14 @@ function App() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Database Schema</CardTitle>
-                <CardDescription>Available tables and columns</CardDescription>
+                <CardDescription>
+                  Available tables and columns
+                  {healthStatus?.database_name && (
+                    <div className="text-xs mt-1 text-blue-600 font-medium">
+                      Active DB: {healthStatus.database_name}
+                    </div>
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Render dynamic schema from backend if available */}

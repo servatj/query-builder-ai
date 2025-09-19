@@ -325,6 +325,67 @@ class DatabaseSystemService {
     }
   }
 
+  // Get schema from the active database
+  async getDatabaseSchema(): Promise<Record<string, { columns: string[]; description: string }>> {
+    try {
+      const defaultConfig = await this.getDefaultDatabaseConfig();
+      if (!defaultConfig) {
+        throw new Error('No default database configuration found');
+      }
+
+      // Create a temporary connection to the target database
+      const targetPool = mysql.createPool({
+        host: defaultConfig.host,
+        port: defaultConfig.port,
+        user: defaultConfig.username,
+        password: defaultConfig.password,
+        database: defaultConfig.database_name,
+        ssl: defaultConfig.ssl_enabled,
+        waitForConnections: true,
+        connectionLimit: 1,
+        queueLimit: 0
+      });
+
+      const connection = await targetPool.getConnection();
+      
+      try {
+        // Get all tables in the database
+        const [tables] = await connection.query<RowDataPacket[]>(
+          'SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = "BASE TABLE"',
+          [defaultConfig.database_name]
+        );
+
+        const schema: Record<string, { columns: string[]; description: string }> = {};
+
+        // Get columns for each table
+        for (const table of tables as any[]) {
+          const tableName = table.TABLE_NAME as string;
+          
+          const [columns] = await connection.query<RowDataPacket[]>(
+            'SELECT COLUMN_NAME, COLUMN_COMMENT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION',
+            [defaultConfig.database_name, tableName]
+          );
+
+          const columnNames = (columns as any[]).map((col) => col.COLUMN_NAME as string);
+          const tableComment = ((table.TABLE_COMMENT as string) || '').trim();
+          
+          schema[tableName] = {
+            columns: columnNames,
+            description: tableComment || `Table ${tableName}`
+          };
+        }
+
+        return schema;
+      } finally {
+        connection.release();
+        await targetPool.end();
+      }
+    } catch (error) {
+      console.error('Failed to get database schema:', error);
+      return {};
+    }
+  }
+
   // Close the pool
   async close(): Promise<void> {
     if (this.pool) {

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import openaiService from '../services/openaiService';
 import { getCachedRules, loadRulesFromFile, QueryPattern } from '../services/rulesService';
 import { sanitizeInput } from '../utils/validators';
+import { databaseService } from '../services/databaseSystemService';
 
 export const getPatterns = async (_req: Request, res: Response) => {
   try {
@@ -12,8 +13,17 @@ export const getPatterns = async (_req: Request, res: Response) => {
       keywords: pattern.keywords,
       examples: pattern.examples || []
     }));
-    return res.json({ patterns, schema: rules.schema, total: patterns.length });
-  } catch {
+    
+    // Get dynamic schema from the active database instead of static rules.json
+    const dynamicSchema = await databaseService.getDatabaseSchema();
+    
+    return res.json({ 
+      patterns, 
+      schema: dynamicSchema, // Use dynamic schema instead of rules.schema
+      total: patterns.length 
+    });
+  } catch (error) {
+    console.error('Failed to fetch query patterns:', error);
     return res.status(500).json({ error: 'Failed to fetch query patterns' });
   }
 };
@@ -24,11 +34,14 @@ export const generateQuery = async (req: Request, res: Response) => {
 
     // Load rules (cached)
     const rules = await getCachedRules();
+    
+    // Get dynamic schema from the active database
+    const dynamicSchema = await databaseService.getDatabaseSchema();
 
     // Try OpenAI first if enabled and requested
     if (useAI && openaiService.enabled) {
       try {
-        const aiResult = await openaiService.generateQuery({ prompt, schema: rules.schema });
+        const aiResult = await openaiService.generateQuery({ prompt, schema: dynamicSchema });
         if (aiResult) {
           return res.json({
             sql: aiResult.sql,

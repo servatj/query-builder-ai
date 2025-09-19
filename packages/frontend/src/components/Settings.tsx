@@ -247,6 +247,12 @@ const Settings: React.FC = () => {
         setSuccess('Database switched successfully!');
         // Reload settings to get the new default database
         await loadCurrentSettings();
+        
+        // Trigger a refresh of the schema in the parent component
+        // by dispatching a custom event
+        window.dispatchEvent(new CustomEvent('databaseSwitched', { 
+          detail: { databaseName: response.data.database?.name } 
+        }));
       } else {
         setError('Failed to switch database: ' + response.data.error);
       }

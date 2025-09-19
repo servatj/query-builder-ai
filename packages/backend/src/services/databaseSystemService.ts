@@ -1,4 +1,4 @@
-import mysql from 'mysql2/promise';
+import mysql, { RowDataPacket } from 'mysql2/promise';
 import { AIConfig } from './openaiService';
 
 interface DatabaseConfig {
@@ -334,17 +334,23 @@ class DatabaseSystemService {
       }
 
       // Create a temporary connection to the target database
-      const targetPool = mysql.createPool({
+      const poolConfig: any = {
         host: defaultConfig.host,
         port: defaultConfig.port,
         user: defaultConfig.username,
         password: defaultConfig.password,
         database: defaultConfig.database_name,
-        ssl: defaultConfig.ssl_enabled,
         waitForConnections: true,
         connectionLimit: 1,
         queueLimit: 0
-      });
+      };
+
+      // Only add SSL config if enabled
+      if (defaultConfig.ssl_enabled) {
+        poolConfig.ssl = {};
+      }
+
+      const targetPool = mysql.createPool(poolConfig);
 
       const connection = await targetPool.getConnection();
       

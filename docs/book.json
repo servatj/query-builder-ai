@@ -1,0 +1,88 @@
+{
+  "title": "AI Query Builder Documentation",
+  "description": "Comprehensive documentation for the AI-Powered Query Builder - Convert natural language to SQL queries",
+  "author": "Query Builder Team",
+  "language": "en",
+  "gitbook": "3.2.3",
+  "root": ".",
+  "structure": {
+    "readme": "README.md",
+    "summary": "SUMMARY.md"
+  },
+  "plugins": [
+    "theme-default",
+    "search",
+    "lunr",
+    "sharing",
+    "fontsettings",
+    "highlight",
+    "copy-code-button",
+    "github",
+    "edit-link",
+    "prism",
+    "anchors",
+    "page-toc",
+    "back-to-top-button"
+  ],
+  "pluginsConfig": {
+    "github": {
+      "url": "https://github.com/yourusername/query-builder"
+    },
+    "edit-link": {
+      "base": "https://github.com/yourusername/query-builder/edit/main/docs",
+      "label": "Edit This Page"
+    },
+    "sharing": {
+      "facebook": false,
+      "twitter": true,
+      "google": false,
+      "weibo": false,
+      "instapaper": false,
+      "vk": false,
+      "all": ["twitter", "linkedin"]
+    },
+    "fontsettings": {
+      "theme": "white",
+      "family": "sans",
+      "size": 2
+    },
+    "prism": {
+      "css": [
+        "prismjs/themes/prism-tomorrow.css"
+      ],
+      "lang": [
+        "javascript",
+        "typescript",
+        "json",
+        "sql",
+        "bash",
+        "yaml",
+        "dockerfile"
+      ]
+    },
+    "page-toc": {
+      "selector": ".markdown-section h1, .markdown-section h2, .markdown-section h3",
+      "position": "before-first",
+      "showByDefault": true
+    }
+  },
+  "links": {
+    "sidebar": {
+      "GitHub Repository": "https://github.com/yourusername/query-builder",
+      "Report Issues": "https://github.com/yourusername/query-builder/issues",
+      "API Documentation": "http://localhost:3001/api/docs"
+    }
+  },
+  "pdf": {
+    "pageNumbers": true,
+    "fontSize": 12,
+    "fontFamily": "Arial",
+    "paperSize": "a4",
+    "margin": {
+      "right": 62,
+      "left": 62,
+      "top": 56,
+      "bottom": 56
+    }
+  }
+}

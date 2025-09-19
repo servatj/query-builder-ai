@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Query Builder - Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .input-section {
+            margin-bottom: 24px;
+        }
+        .input-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        .sql-output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .sidebar {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 24px;
+        }
+        .sidebar h3 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .example {
+            padding: 8px 12px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .example:hover {
+            background: #e2e8f0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status.healthy {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .confidence {
+            color: #059669;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI-Powered Query Builder</h1>
+            <p>Convert natural language to SQL queries with real-time validation</p>
+            <div style="text-align: right; margin-top: -40px;">
+                <span class="status healthy">Backend: healthy</span><br>
+                <small style="color: #059669;">Database: connected</small>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div>
+                <div class="card">
+                    <h2 style="margin-top: 0;">Query Builder</h2>
+                    <p style="color: #64748b; margin-bottom: 24px;">
+                        Enter your request in plain English and we'll generate the SQL for you
+                    </p>
+                    
+                    <div class="input-section">
+                        <label>1. Describe what you want to query</label>
+                        <textarea class="textarea" placeholder="e.g., 'Show me all users from California who signed up this week'">Show me all users from California</textarea>
+                        <button class="button" style="margin-top: 12px;">Generate SQL Query</button>
+                    </div>
+
+                    <div class="input-section">
+                        <label>2. Generated SQL Query <span class="confidence">Confidence: 85%</span></label>
+                        <div class="sql-output">SELECT id, name, email, signup_date, state 
+FROM users 
+WHERE state = 'California' 
+ORDER BY signup_date DESC 
+LIMIT 100;</div>
+                        <div style="margin-top: 8px; font-size: 12px; color: #64748b; background: #f1f5f9; padding: 8px; border-radius: 4px;">
+                            <strong>Matched Pattern:</strong> Filter users by state<br>
+                            <strong>Keywords:</strong> users, California, state<br>
+                            <strong>Extracted Values:</strong> California
+                        </div>
+                    </div>
+
+                    <button class="button" style="margin-top: 16px;">Validate & Preview Query</button>
+
+                    <div style="margin-top: 24px;">
+                        <h3>3. Data Preview</h3>
+                        <div style="border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f8fafc;">
+                                    <tr>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #d1d5db;">id</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #d1d5db;">name</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #d1d5db;">email</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #d1d5db;">state</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">1</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">John Smith</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">john@example.com</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">California</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">2</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Sarah Johnson</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">sarah@example.com</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">California</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">3</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Mike Davis</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">mike@example.com</td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">California</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <small style="color: #64748b;">Showing first 3 of 47 rows</small>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="sidebar">
+                    <h3>Quick Examples</h3>
+                    <p style="color: #64748b; margin-bottom: 16px;">Click any example to try it</p>
+                    
+                    <div>
+                        <strong style="font-size: 14px;">Show all users</strong>
+                        <div class="example">"Show me all users"</div>
+                        <div class="example">"Get all user records"</div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <strong style="font-size: 14px;">Filter by location</strong>
+                        <div class="example">"Users from Texas"</div>
+                        <div class="example">"Show customers in New York"</div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <strong style="font-size: 14px;">Count records</strong>
+                        <div class="example">"Count all products"</div>
+                        <div class="example">"How many orders do we have"</div>
+                    </div>
+                </div>
+
+                <div class="sidebar" style="margin-top: 16px;">
+                    <h3>Database Schema</h3>
+                    <p style="color: #64748b; margin-bottom: 16px;">Available tables and columns</p>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <strong style="font-size: 14px;">users</strong>
+                        <div style="font-size: 12px; color: #64748b;">id, name, email, signup_date, state</div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <strong style="font-size: 14px;">products</strong>
+                        <div style="font-size: 12px; color: #64748b;">id, name, price, category, created_at</div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <strong style="font-size: 14px;">orders</strong>
+                        <div style="font-size: 12px; color: #64748b;">id, user_id, product_id, quantity, order_date</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

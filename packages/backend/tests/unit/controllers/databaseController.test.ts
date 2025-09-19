@@ -8,7 +8,9 @@ vi.mock('../../../src/services/databaseSystemService', () => ({
   __esModule: true,
   default: {
     getDatabaseConfigs: vi.fn(),
-    saveDatabaseConfig: vi.fn()
+    saveDatabaseConfig: vi.fn(),
+    switchDefaultDatabase: vi.fn(),
+    getDefaultDatabaseConfig: vi.fn()
   }
 }));
 
@@ -83,33 +85,21 @@ describe('databaseController', () => {
 
   describe('switchDatabase', () => {
     it('should successfully switch to an existing database', async () => {
-      vi.mocked(databaseService.getDatabaseConfigs).mockResolvedValue(mockDatabases);
-      vi.mocked(databaseService.saveDatabaseConfig).mockResolvedValue();
+      const switchedDatabase = { ...mockDatabases[0], is_default: true };
+      vi.mocked(databaseService.switchDefaultDatabase).mockResolvedValue(true);
+      vi.mocked(databaseService.getDefaultDatabaseConfig).mockResolvedValue(switchedDatabase);
       
       const req = { params: { id: '1' } } as any as Request;
       const res = createMockRes();
       
       await switchDatabase(req, res);
       
-      expect(databaseService.getDatabaseConfigs).toHaveBeenCalledTimes(1);
-      expect(databaseService.saveDatabaseConfig).toHaveBeenCalledWith({
-        name: 'Production DB',
-        host: 'prod.example.com',
-        port: 3306,
-        database_name: 'production',
-        username: 'prod_user',
-        password: 'prod_pass',
-        ssl_enabled: true,
-        is_active: true,
-        is_default: true
-      });
+      expect(databaseService.switchDefaultDatabase).toHaveBeenCalledWith(1);
+      expect(databaseService.getDefaultDatabaseConfig).toHaveBeenCalledTimes(1);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
         message: 'Switched to database: Production DB',
-        database: expect.objectContaining({
-          name: 'Production DB',
-          is_default: true
-        })
+        database: switchedDatabase
       });
     });
 
@@ -125,7 +115,7 @@ describe('databaseController', () => {
     });
 
     it('should return 404 error when database not found', async () => {
-      vi.mocked(databaseService.getDatabaseConfigs).mockResolvedValue(mockDatabases);
+      vi.mocked(databaseService.switchDefaultDatabase).mockResolvedValue(false);
       
       const req = { params: { id: '999' } } as any as Request;
       const res = createMockRes();
@@ -133,12 +123,12 @@ describe('databaseController', () => {
       await switchDatabase(req, res);
       
       expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Database configuration not found' });
-      expect(databaseService.saveDatabaseConfig).not.toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({ error: 'Database configuration not found or switching failed' });
+      expect(databaseService.getDefaultDatabaseConfig).not.toHaveBeenCalled();
     });
 
     it('should return 500 error when database service fails', async () => {
-      vi.mocked(databaseService.getDatabaseConfigs).mockRejectedValue(new Error('Database error'));
+      vi.mocked(databaseService.switchDefaultDatabase).mockRejectedValue(new Error('Database error'));
       
       const req = { params: { id: '1' } } as any as Request;
       const res = createMockRes();
@@ -149,9 +139,9 @@ describe('databaseController', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Failed to switch database' });
     });
 
-    it('should return 500 error when save operation fails', async () => {
-      vi.mocked(databaseService.getDatabaseConfigs).mockResolvedValue(mockDatabases);
-      vi.mocked(databaseService.saveDatabaseConfig).mockRejectedValue(new Error('Save error'));
+    it('should return 500 error when switching operation fails', async () => {
+      vi.mocked(databaseService.switchDefaultDatabase).mockResolvedValue(true);
+      vi.mocked(databaseService.getDefaultDatabaseConfig).mockRejectedValue(new Error('Get config error'));
       
       const req = { params: { id: '1' } } as any as Request;
       const res = createMockRes();

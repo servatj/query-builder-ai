@@ -1,0 +1,23 @@
+root: ./docs/
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md
+
+format: markdown
+
+title: AI Query Builder Documentation
+description: Comprehensive documentation for the AI-Powered Query Builder
+
+redirects:
+  previous/url: new-url
+
+integrations:
+  github:
+    owner: yourusername
+    repo: query-builder
+    branch: main
+    root: ./docs/
+
+pdf:
+  enabled: true

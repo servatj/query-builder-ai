@@ -173,3 +173,4 @@ describe('Textarea', () => {
     expect(textarea).toHaveStyle('resize: vertical')
   })
 })
+

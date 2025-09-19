@@ -218,3 +218,4 @@ describe('Card composition', () => {
     expect(screen.getByText('Item 2')).toBeInTheDocument()
   })
 })
+

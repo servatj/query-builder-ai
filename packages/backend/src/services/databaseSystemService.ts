@@ -273,6 +273,45 @@ class DatabaseSystemService {
     }
   }
 
+  // Switch default database configuration
+  async switchDefaultDatabase(databaseId: number): Promise<boolean> {
+    const connection = await this.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // First, verify the target database exists and is active
+      const [targetRows] = await connection.execute(
+        'SELECT id, name FROM database_settings WHERE id = ? AND is_active = 1',
+        [databaseId]
+      );
+      const targetDbs = targetRows as DatabaseConfig[];
+      
+      if (targetDbs.length === 0) {
+        throw new Error('Target database configuration not found or inactive');
+      }
+
+      // Clear all default flags
+      await connection.execute(
+        'UPDATE database_settings SET is_default = 0 WHERE is_default = 1'
+      );
+
+      // Set the target database as default
+      await connection.execute(
+        'UPDATE database_settings SET is_default = 1 WHERE id = ?',
+        [databaseId]
+      );
+
+      await connection.commit();
+      return true;
+    } catch (error) {
+      await connection.rollback();
+      console.error('Failed to switch default database:', error);
+      return false;
+    } finally {
+      connection.release();
+    }
+  }
+
   // Test database connection
   async testConnection(): Promise<boolean> {
     try {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Settings from '@/components/Settings';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -263,16 +264,19 @@ function App() {
             </div>
           </div>
           
-          {healthStatus && (
-            <div className="text-right">
-              <div className={`text-sm font-medium ${getHealthStatusColor()}`}>
-                Backend: {healthStatus.status}
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            {healthStatus && (
+              <div className="text-right">
+                <div className={`text-sm font-medium ${getHealthStatusColor()}`}>
+                  Backend: {healthStatus.status}
+                </div>
+                <div className={`text-xs ${healthStatus.database === 'connected' ? 'text-green-500' : 'text-yellow-500'}`}>
+                  Database: {healthStatus.database}
+                </div>
               </div>
-              <div className={`text-xs ${healthStatus.database === 'connected' ? 'text-green-500' : 'text-yellow-500'}`}>
-                Database: {healthStatus.database}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Conditional Page Rendering */}

@@ -218,7 +218,7 @@ const SqlEditor: React.FC<SqlEditorProps> = ({
       <Editor
         height={height}
         language="sql"
-        theme={theme === 'dark' ? 'vs-dark' : 'vs'}
+        theme="black-theme"
         value={value || ''}
         onChange={(val) => onChange(val || '')}
         options={{
@@ -264,6 +264,20 @@ const SqlEditor: React.FC<SqlEditorProps> = ({
           placeholder: !value ? placeholder : undefined
         }}
         onMount={handleEditorDidMount}
+        beforeMount={(monaco) => {
+          monaco.editor.defineTheme('black-theme', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [],
+            colors: {
+              'editor.background': '#000000',
+              'editor.lineHighlightBackground': '#1a1a1a',
+              'editorLineNumber.foreground': '#666666',
+              'editorLineNumber.activeForeground': '#ffffff'
+            }
+          });
+          monaco.editor.setTheme('black-theme');
+        }}
       />
     </div>
   );

@@ -173,6 +173,25 @@ function App() {
     setExecutionInfo(null);
   };
 
+  const handleCopyQuery = async () => {
+    try {
+      // Check if the Clipboard API is available
+      if (!navigator.clipboard) {
+        throw new Error('Clipboard API not available');
+      }
+      
+      if (sqlQuery.trim()) {
+        await navigator.clipboard.writeText(sqlQuery);
+        // You could add a toast notification here if desired
+        console.log('Query copied to clipboard');
+      }
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      // Fallback: show an alert to manually copy
+      alert('Unable to copy to clipboard. Please manually copy the query using Ctrl+C (or Cmd+C on Mac)');
+    }
+  };
+
   const getHealthStatusColor = () => {
     if (!healthStatus) return 'text-gray-500';
     switch (healthStatus.status) {
@@ -318,13 +337,26 @@ function App() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <label htmlFor="sql-query" className="font-medium">2. Generated SQL Query</label>
-                    {queryMetadata && (
-                      <div className="text-sm space-x-2">
-                        <span className={`font-medium ${getConfidenceColor(queryMetadata.confidence)}`}>
-                          Confidence: {Math.round(queryMetadata.confidence * 100)}%
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {sqlQuery && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleCopyQuery}
+                          disabled={isLoading}
+                          className="text-xs"
+                        >
+                          📋 Copy Query
+                        </Button>
+                      )}
+                      {queryMetadata && (
+                        <div className="text-sm">
+                          <span className={`font-medium ${getConfidenceColor(queryMetadata.confidence)}`}>
+                            Confidence: {Math.round(queryMetadata.confidence * 100)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className={`rounded-md border p-2 transition-colors ${

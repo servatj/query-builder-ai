@@ -66,7 +66,7 @@ export const loadRulesFromDatabase = async (): Promise<Rules | null> => {
     const connection = await databaseService['getConnection']();
     try {
       const [rows] = await connection.execute(
-        'SELECT rules_json FROM database_config_files WHERE database_settings_id = ?',
+        'SELECT rules_json, schema_json FROM database_config_files WHERE database_settings_id = ?',
         [defaultDbConfig.id]
       );
       const configRows = rows as any[];
@@ -93,11 +93,14 @@ export const upsertRulesToDatabase = async (rules: Rules): Promise<void> => {
 
     const connection = await databaseService['getConnection']();
     try {
+      // Save both rules_json and schema_json in a single operation
       await connection.execute(
-        `INSERT INTO database_config_files (database_settings_id, rules_json) 
-         VALUES (?, ?) 
-         ON DUPLICATE KEY UPDATE rules_json = VALUES(rules_json)`,
-        [defaultDbConfig.id, JSON.stringify(rules)]
+        `INSERT INTO database_config_files (database_settings_id, rules_json, schema_json) 
+         VALUES (?, ?, ?) 
+         ON DUPLICATE KEY UPDATE 
+           rules_json = VALUES(rules_json),
+           schema_json = VALUES(schema_json)`,
+        [defaultDbConfig.id, JSON.stringify(rules), JSON.stringify(rules.schema)]
       );
     } finally {
       connection.release();
@@ -150,5 +153,33 @@ export const updateSchemaInDatabase = async (schema: Record<string, { columns: s
   } catch (error) {
     console.error('Failed to update schema in database:', error);
     throw error;
+  }
+};
+
+export const loadSchemaFromDatabase = async (): Promise<Record<string, { columns: string[]; description: string }> | null> => {
+  try {
+    const defaultDbConfig = await databaseService.getDefaultDatabaseConfig();
+    if (!defaultDbConfig) {
+      throw new Error('No default database configuration found');
+    }
+
+    const connection = await databaseService['getConnection']();
+    try {
+      const [rows] = await connection.execute(
+        'SELECT schema_json FROM database_config_files WHERE database_settings_id = ?',
+        [defaultDbConfig.id]
+      );
+      const configRows = rows as any[];
+      
+      if (configRows.length > 0 && configRows[0].schema_json) {
+        return configRows[0].schema_json as Record<string, { columns: string[]; description: string }>;
+      }
+      return null;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Failed to load schema from database:', error);
+    return null;
   }
 };

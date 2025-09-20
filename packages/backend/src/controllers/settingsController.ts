@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import openaiService, { AIConfig } from '../services/openaiService';
 import databaseService, { DatabaseConfig, AISettingsDB } from '../services/databaseSystemService';
-import { getCachedRules, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase, loadRulesFromDatabase } from '../services/rulesService';
+import { getCachedRules, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase, loadRulesFromDatabase, loadSchemaFromDatabase } from '../services/rulesService';
 
 
 export const getSettings = async (_req: Request, res: Response) => {
@@ -271,8 +271,15 @@ export const getRules = async (_req: Request, res: Response) => {
 
 export const getSchema = async (_req: Request, res: Response) => {
   try {
-    const schema = await databaseService.getDatabaseSchema();
-    return res.json({ success: true, data: schema });
+    // First try to load schema from database config files
+    const schema = await loadSchemaFromDatabase();
+    if (schema) {
+      return res.json({ success: true, data: schema });
+    }
+    
+    // Fallback to database system service if no schema found
+    const fallbackSchema = await databaseService.getDatabaseSchema();
+    return res.json({ success: true, data: fallbackSchema });
   } catch (error) {
     console.error('Failed to get schema:', error);
     return res.status(500).json({ error: 'Failed to fetch schema configuration' });

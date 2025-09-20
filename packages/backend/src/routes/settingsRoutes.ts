@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { getSettings, testAI, testDatabase, updateAI, updateDatabase, updateRules,
-  createRules, createSchema, createDatabase, updateSchema, getAllDatabases, switchDatabase } from '../controllers/settingsController';
+  createRules, createSchema, createDatabase, updateSchema, getAllDatabases, switchDatabase, getRules, getSchema } from '../controllers/settingsController';
 
 const router = Router();
 
 router.get('/settings', getSettings);
+router.get('/settings/rules', getRules);
 router.post('/settings/rules', createRules);
 router.put('/settings/rules/save', updateRules);
+router.get('/settings/schema', getSchema);
 router.post('/settings/schema', createSchema);
 router.put('/settings/schema/save', updateSchema);
 router.post('/settings/database', createDatabase);

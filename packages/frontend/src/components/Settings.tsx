@@ -246,8 +246,9 @@ const Settings: React.FC = () => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/settings/databases/${selectedDatabaseId}/switch`);
       if (response.data.success) {
-        setSuccess('Database switched successfully!');
-        // Reload settings to get the new default database
+        setSuccess('Database switched successfully! Rules, schema, and database settings updated.');
+        
+        // Reload all settings to get the new default database configuration
         await loadCurrentSettings();
         
         // Trigger a refresh of the schema in the parent component
@@ -361,6 +362,79 @@ const Settings: React.FC = () => {
           <p className="text-muted-foreground">Configure query rules and database connections</p>
         </div>
       </div>
+
+      {/* Database Selection - Always Visible at Top */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Database Configuration</CardTitle>
+              <CardDescription>
+                Configure database connections and settings
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              variant={showCreateForm ? "outline" : "default"}
+              disabled={isLoading}
+              size="sm"
+            >
+              {showCreateForm ? 'Cancel' : 'Add New Database'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Create New Database Form */}
+          {showCreateForm && (
+            <DatabaseForm
+              onSubmit={handleCreateDatabase}
+              onCancel={() => setShowCreateForm(false)}
+              isLoading={isLoading}
+            />
+          )}
+          
+          {/* Database Selection */}
+          <div className="space-y-3">
+            <label className="font-medium text-sm">Active Database</label>
+            <div className="space-y-2">
+              <select
+                value={selectedDatabaseId || ''}
+                onChange={(e) => {
+                  const id = e.target.value ? Number(e.target.value) : null;
+                  setSelectedDatabaseId(id);
+                  if (id) {
+                    const selected = availableDatabases.find((db) => db.id === id);
+                    if (selected) {
+                      setDatabaseSettings(selected);
+                      setDbSettingsJson(JSON.stringify(selected, null, 2));
+                      // Clear any previous messages
+                      setError(null);
+                      setSuccess(null);
+                    }
+                  }
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md bg-background"
+                disabled={isLoading}
+              >
+                <option value="">Select a database...</option>
+                {availableDatabases.map((db) => (
+                  <option key={db.id} value={db.id}>
+                    {db.name} ({db.host}:{db.port}/{db.database_name})
+                    {!!db.is_default && ' - Default'}
+                  </option>
+                ))}
+              </select>
+              <Button 
+                onClick={handleSwitchDatabase} 
+                disabled={isLoading || !selectedDatabaseId}
+                size="sm"
+              >
+                {isLoading ? 'Switching...' : 'Switch Database'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tab Navigation */}
       <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
@@ -645,44 +719,6 @@ const Settings: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-            {/* Database Selection */}
-            <div className="space-y-3">
-              <label className="font-medium text-sm">Active Database</label>
-              <div className="space-y-2">
-                <select
-                  value={selectedDatabaseId || ''}
-                  onChange={(e) => {
-                    const id = e.target.value ? Number(e.target.value) : null;
-                    setSelectedDatabaseId(id);
-                    if (id) {
-                      const selected = availableDatabases.find((db) => db.id === id);
-                      if (selected) {
-                        setDatabaseSettings(selected);
-                        setDbSettingsJson(JSON.stringify(selected, null, 2));
-                      }
-                    }
-                  }}
-                  className="w-full p-2 border border-gray-300 rounded-md bg-background"
-                  disabled={isLoading}
-                >
-                  <option value="">Select a database...</option>
-                  {availableDatabases.map((db) => (
-                    <option key={db.id} value={db.id}>
-                      {db.name} ({db.host}:{db.port}/{db.database_name})
-                      {!!db.is_default && ' - Default'}
-                    </option>
-                  ))}
-                </select>
-                <Button 
-                  onClick={handleSwitchDatabase} 
-                  disabled={isLoading || !selectedDatabaseId}
-                  size="sm"
-                >
-                  {isLoading ? 'Switching...' : 'Switch Database'}
-                </Button>
-              </div>
-            </div>
-
             {/* Database Settings JSON Editor */}
             <div className="space-y-2">
               <label htmlFor="db-settings-json" className="font-medium">

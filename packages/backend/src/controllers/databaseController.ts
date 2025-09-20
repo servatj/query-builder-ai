@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import databaseService, { DatabaseConfig } from '../services/databaseSystemService';
+import { clearCachedRules } from '../services/rulesService';
+import { recreateDestinationPool } from '../index';
 
 export const listDatabases = async (_req: Request, res: Response) => {
   try {
@@ -21,6 +23,15 @@ export const switchDatabase = async (req: Request, res: Response) => {
     
     if (!success) {
       return res.status(404).json({ error: 'Database configuration not found or switching failed' });
+    }
+
+    // Clear cached rules so they reload from the new database
+    clearCachedRules();
+
+    // Recreate destination pool to connect to the new database
+    const poolRecreated = await recreateDestinationPool();
+    if (!poolRecreated) {
+      console.warn('Failed to recreate destination pool after database switch');
     }
 
     // Get the updated database configuration to return

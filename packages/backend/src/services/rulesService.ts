@@ -56,6 +56,10 @@ export const setCachedRules = (rules: Rules | null) => {
   cachedRules = rules;
 };
 
+export const clearCachedRules = () => {
+  cachedRules = null;
+};
+
 export const loadRulesFromDatabase = async (): Promise<Rules | null> => {
   try {
     const defaultDbConfig = await databaseService.getDefaultDatabaseConfig();

@@ -28,7 +28,8 @@
     "clean": "rm -rf packages/*/node_modules packages/*/dist packages/*/build",
     "reset": "npm run clean && npm install",
     "postinstall": "npm run setup-env",
-    "setup-env": "[ ! -f packages/backend/.env ] && cp packages/backend/.env.example packages/backend/.env || true"
+    "setup-env": "[ ! -f packages/backend/.env ] && cp packages/backend/.env.example packages/backend/.env || true",
+    "schema:generate": "cd packages/backend && npm run schema:generate"
   },
   "keywords": [
     "ai",

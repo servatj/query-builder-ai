@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import openaiService, { AIConfig } from '../services/openaiService';
 import databaseService, { DatabaseConfig, AISettingsDB } from '../services/databaseSystemService';
-import { getCachedRules, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase, loadRulesFromDatabase, loadSchemaFromDatabase } from '../services/rulesService';
+import { getCachedRules, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase, loadRulesFromDatabase, loadSchemaFromDatabase, clearCachedRules } from '../services/rulesService';
+import { recreateDestinationPool } from '../index';
 
 
 export const getSettings = async (_req: Request, res: Response) => {
@@ -295,7 +296,23 @@ export const switchDatabase = async (req: Request, res: Response) => {
     
     const success = await databaseService.switchDefaultDatabase(parseInt(databaseId));
     if (success) {
-      return res.json({ success: true, message: 'Default database switched successfully' });
+      // Clear cached rules so they reload from the new database
+      clearCachedRules();
+      
+      // Recreate destination pool to connect to the new database
+      const poolRecreated = await recreateDestinationPool();
+      if (!poolRecreated) {
+        console.warn('Failed to recreate destination pool after database switch');
+      }
+      
+      // Get the new database configuration
+      const newDbConfig = await databaseService.getDefaultDatabaseConfig();
+      
+      return res.json({ 
+        success: true, 
+        message: 'Default database switched successfully',
+        database: newDbConfig
+      });
     } else {
       return res.status(400).json({ error: 'Failed to switch database - database may not exist or be inactive' });
     }

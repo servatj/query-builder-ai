@@ -4,7 +4,7 @@ import cors from 'cors';
 import mysql from 'mysql2/promise';
 import openaiService from './services/openaiService';
 import databaseService from './services/databaseSystemService';
-import { setDestinationPool, setPool } from './services/pools';
+import { setDestinationPool, setPool, getDestinationPool } from './services/pools';
 import queryRoutes from './routes/queryRoutes';
 import validationRoutes from './routes/validationRoutes';
 import settingsRoutes from './routes/settingsRoutes';
@@ -45,11 +45,28 @@ const createDestinationPool = async () => {
   const databaseUrl = `mysql://${databaseConfig.username}:${databaseConfig.password}@${databaseConfig.host}:${databaseConfig.port}/${databaseConfig.database_name}`;
 
   try {
-    return mysql.createPool(databaseUrl);
+    const pool = mysql.createPool(databaseUrl);
+    logger.info(`✅ Created destination pool for database: ${databaseConfig.database_name} on ${databaseConfig.host}:${databaseConfig.port}`);
+    return pool;
   } catch (error: unknown) {
     logger.error('Failed to create destination database pool:', { error });
     return null;
   }
+};
+
+// Export function to recreate destination pool (for database switching)
+export const recreateDestinationPool = async () => {
+  // Close existing pool if it exists
+  const currentPool = getDestinationPool();
+  if (currentPool) {
+    await currentPool.end();
+  }
+  
+  // Create new pool with updated configuration
+  const newPool = await createDestinationPool();
+  setDestinationPool(newPool);
+  
+  return newPool !== null;
 };
 
 const bootStrap = async () => {

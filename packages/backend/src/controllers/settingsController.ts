@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import openaiService, { AIConfig } from '../services/openaiService';
 import databaseService, { DatabaseConfig, AISettingsDB } from '../services/databaseSystemService';
-import { getCachedRules, saveRulesToFile } from '../services/rulesService';
+import { getCachedRules, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase, loadRulesFromDatabase } from '../services/rulesService';
+
 
 export const getSettings = async (_req: Request, res: Response) => {
   try {
@@ -37,19 +38,114 @@ export const getSettings = async (_req: Request, res: Response) => {
   }
 };
 
+export const upsertDatabase = async (req: Request, res: Response) => {
+  try {
+    const { name, host, port, database_name, username, password, ssl_enabled } = req.body;
+    if (!host || !port || !database_name || !username) {
+      return res.status(400).json({ error: 'Missing required fields: host, port, database_name, username are required' });
+    }
+    const dbConfig: Omit<DatabaseConfig, 'id'> = {
+      name: name || 'Custom Configuration',
+      host,
+      port: parseInt(port),
+      database_name,
+      username,
+      password: password || '',
+      ssl_enabled: ssl_enabled || false,
+      is_active: true,
+      is_default: true
+    };
+    await databaseService.upsertDatabaseConfig(dbConfig);
+    return res.json({ success: true, message: 'Database configuration created successfully' });
+  } catch (error) {
+    console.error('Failed to upsert database config:', error);
+    return res.status(500).json({ error: 'Failed to create database configuration' });
+  }
+};
+
+
+export const createSchema = async (req: Request, res: Response) => {
+  try {
+    const { schema } = req.body;
+    if (!schema || typeof schema !== 'object') {
+      return res.status(400).json({ error: 'Schema is required and must be an object' });
+    }
+    await upsertSchemaToDatabase(schema);
+    return res.json({ success: true, message: 'Schema configuration created successfully', tables: Object.keys(schema).length });
+  } catch (error) {
+    console.error('Failed to create schema config:', error);
+    return res.status(500).json({ error: 'Failed to create schema configuration' });
+  }
+};
+
+export const updateSchema = async (req: Request, res: Response) => {
+  try {
+    const { schema } = req.body;
+    if (!schema || typeof schema !== 'object') {
+      return res.status(400).json({ error: 'Schema is required and must be an object' });
+    }
+    await updateSchemaInDatabase(schema);
+    return res.json({ success: true, message: 'Schema configuration updated successfully', tables: Object.keys(schema).length });
+  } catch (error) {
+    console.error('Failed to update schema config:', error);
+    return res.status(500).json({ error: 'Failed to update schema configuration' });
+  }
+};
+
+export const createRules = async (req: Request, res: Response) => {
+  try {
+    const { schema, query_patterns } = req.body;
+    if (!schema || !query_patterns || !Array.isArray(query_patterns)) {
+      return res.status(400).json({ error: 'Both schema and query_patterns (array) are required' });
+    }
+    await upsertRulesToDatabase({ schema, query_patterns });
+    return res.json({ success: true, message: 'Rules configuration created successfully', patterns: query_patterns.length, tables: Object.keys(schema).length });
+  } catch (error) {
+    console.error('Failed to create rules config:', error);
+    return res.status(500).json({ error: 'Failed to create rules configuration' });
+  }
+};
+
 export const updateRules = async (req: Request, res: Response) => {
   try {
     const { schema, query_patterns } = req.body;
     if (!schema || !query_patterns) return res.status(400).json({ error: 'Both schema and query_patterns are required' });
     if (!Array.isArray(query_patterns)) return res.status(400).json({ error: 'query_patterns must be an array' });
-    await saveRulesToFile({ schema, query_patterns });
+    await upsertRulesToDatabase({ schema, query_patterns });
     return res.json({ success: true, message: 'Rules configuration updated successfully', patterns: query_patterns.length, tables: Object.keys(schema).length });
-  } catch {
+  } catch (error) {
+    console.error('Failed to update rules config:', error);
     return res.status(500).json({ error: 'Failed to update rules configuration' });
   }
 };
 
 export const updateDatabase = async (req: Request, res: Response) => {
+  try {
+    const { name, host, port, database_name, username, password, ssl_enabled } = req.body;
+    if (!host || !port || !database_name || !username) {
+      return res.status(400).json({ error: 'Missing required fields: host, port, database_name, username are required' });
+    }
+    const dbConfig: Omit<DatabaseConfig, 'id'> = {
+      name: name || 'Custom Configuration',
+      host,
+      port: parseInt(port),
+      database_name,
+      username,
+      password: password || '',
+      ssl_enabled: ssl_enabled || false,
+      is_active: true,
+      is_default: true
+    };
+    await databaseService.upsertDatabaseConfig(dbConfig);
+    return res.json({ success: true, message: 'Database configuration updated successfully' });
+  } catch (error) {
+    console.error('Failed to update database config:', error);
+    return res.status(500).json({ error: 'Failed to update database configuration' });
+  }
+};
+
+
+export const createDatabase = async (req: Request, res: Response) => {
   try {
     const { name, host, port, database_name, username, password, ssl_enabled } = req.body;
     if (!host || !port || !database_name || !username) return res.status(400).json({ error: 'Missing required fields: host, port, database_name, username are required' });
@@ -64,10 +160,11 @@ export const updateDatabase = async (req: Request, res: Response) => {
       is_active: true,
       is_default: true
     };
-    await databaseService.saveDatabaseConfig(dbConfig);
-    return res.json({ success: true, message: 'Database configuration updated successfully' });
-  } catch {
-    return res.status(500).json({ error: 'Failed to update database configuration' });
+    await databaseService.upsertDatabaseConfig(dbConfig);
+    return res.json({ success: true, message: 'Database configuration created successfully' });
+  } catch (error) {
+    console.error('Failed to create database config:', error);
+    return res.status(500).json({ error: 'Failed to create database configuration' });
   }
 };
 
@@ -113,7 +210,8 @@ export const updateAI = async (req: Request, res: Response) => {
       }
     }
     return res.json({ success: true, message: 'AI configuration updated successfully' });
-  } catch {
+  } catch (error) {
+    console.error('Failed to update AI config:', error);
     return res.status(500).json({ error: 'Failed to update AI configuration' });
   }
 };
@@ -133,5 +231,69 @@ export const testAI = async (req: Request, res: Response) => {
     }
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to test AI connection' });
+  }
+};
+
+// Additional CRUD endpoints
+
+export const getAllDatabases = async (_req: Request, res: Response) => {
+  try {
+    const databases = await databaseService.getDatabaseConfigs();
+    return res.json({ success: true, data: databases });
+  } catch (error) {
+    console.error('Failed to get databases:', error);
+    return res.status(500).json({ error: 'Failed to fetch database configurations' });
+  }
+};
+
+export const getAllAISettings = async (_req: Request, res: Response) => {
+  try {
+    const aiSettings = await databaseService.getAISettings();
+    return res.json({ success: true, data: aiSettings });
+  } catch (error) {
+    console.error('Failed to get AI settings:', error);
+    return res.status(500).json({ error: 'Failed to fetch AI configurations' });
+  }
+};
+
+export const getRules = async (_req: Request, res: Response) => {
+  try {
+    const rules = await loadRulesFromDatabase();
+    if (!rules) {
+      return res.status(404).json({ error: 'No rules configuration found' });
+    }
+    return res.json({ success: true, data: rules });
+  } catch (error) {
+    console.error('Failed to get rules:', error);
+    return res.status(500).json({ error: 'Failed to fetch rules configuration' });
+  }
+};
+
+export const getSchema = async (_req: Request, res: Response) => {
+  try {
+    const schema = await databaseService.getDatabaseSchema();
+    return res.json({ success: true, data: schema });
+  } catch (error) {
+    console.error('Failed to get schema:', error);
+    return res.status(500).json({ error: 'Failed to fetch schema configuration' });
+  }
+};
+
+export const switchDatabase = async (req: Request, res: Response) => {
+  try {
+    const { databaseId } = req.params;
+    if (!databaseId || isNaN(parseInt(databaseId))) {
+      return res.status(400).json({ error: 'Valid database ID is required' });
+    }
+    
+    const success = await databaseService.switchDefaultDatabase(parseInt(databaseId));
+    if (success) {
+      return res.json({ success: true, message: 'Default database switched successfully' });
+    } else {
+      return res.status(400).json({ error: 'Failed to switch database - database may not exist or be inactive' });
+    }
+  } catch (error) {
+    console.error('Failed to switch database:', error);
+    return res.status(500).json({ error: 'Failed to switch default database' });
   }
 };

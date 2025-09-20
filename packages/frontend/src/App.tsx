@@ -18,6 +18,8 @@ interface QueryPattern {
 interface HealthStatus {
   status: string;
   database: string;
+  database_host?: string;
+  database_name?: string;
   timestamp: string;
 }
 

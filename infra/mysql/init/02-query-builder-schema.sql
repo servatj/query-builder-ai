@@ -46,6 +46,18 @@ CREATE TABLE app_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Database configuration files (rules, schema, examples)
+CREATE TABLE database_config_files (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    database_settings_id INT NOT NULL UNIQUE,
+    rules_json JSON,
+    schema_json JSON,
+    example_json JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (database_settings_id) REFERENCES database_settings(id) ON DELETE CASCADE
+);
+
 -- Query execution logs (optional - for analytics)
 CREATE TABLE query_logs (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -69,6 +81,7 @@ CREATE INDEX idx_app_settings_key ON app_settings(setting_key);
 CREATE INDEX idx_app_settings_type ON app_settings(setting_type);
 CREATE INDEX idx_query_logs_status ON query_logs(execution_status);
 CREATE INDEX idx_query_logs_created ON query_logs(created_at);
+CREATE INDEX idx_database_config_files_db_id ON database_config_files(database_settings_id);
 
 -- Insert default database configuration
 INSERT INTO database_settings (name, host, port, database_name, username, password, ssl_enabled, is_active, is_default) 

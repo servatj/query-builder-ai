@@ -26,7 +26,11 @@
       "Bash(curl:*)",
       "Bash(docker-compose:*)",
       "Bash(find:*)",
-      "mcp__ide__executeCode"
+      "mcp__ide__executeCode",
+      "Bash(rm:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)"
     ],
     "deny": []
   }

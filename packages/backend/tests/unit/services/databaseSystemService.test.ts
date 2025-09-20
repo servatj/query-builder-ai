@@ -69,7 +69,7 @@ describe('databaseSystemService', () => {
     c.commit.mockResolvedValue(undefined as any);
     mockGetConnection.mockResolvedValue(c);
     const svc = await importService();
-    const id = await svc.saveDatabaseConfig({
+    const id = await svc.upsertDatabaseConfig({
       name: 'db', host: 'h', port: 3306, database_name: 'd', username: 'u', password: 'p', ssl_enabled: false, is_active: true, is_default: true
     });
     expect(id).toBe(42);
@@ -85,7 +85,7 @@ describe('databaseSystemService', () => {
   c.rollback.mockResolvedValue(undefined as any);
     mockGetConnection.mockResolvedValue(c);
     const svc = await importService();
-    await expect(svc.saveDatabaseConfig({
+    await expect(svc.upsertDatabaseConfig({
       name: 'db', host: 'h', port: 3306, database_name: 'd', username: 'u', password: 'p', ssl_enabled: false, is_active: true, is_default: false
     })).rejects.toThrow('fail');
     expect(c.rollback).toHaveBeenCalled();

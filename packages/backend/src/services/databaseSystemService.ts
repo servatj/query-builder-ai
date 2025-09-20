@@ -87,7 +87,7 @@ class DatabaseSystemService {
   }
 
 
-  async saveDatabaseConfig(config: Omit<DatabaseConfig, 'id'>): Promise<number> {
+  async upsertDatabaseConfig(config: Omit<DatabaseConfig, 'id'>): Promise<number> {
     const connection = await this.getConnection();
     try {
       await connection.beginTransaction();
@@ -151,6 +151,10 @@ class DatabaseSystemService {
     } finally {
       connection.release();
     }
+  }
+
+  async upsertAISettings(settings: Omit<AISettingsDB, 'id'>): Promise<number> {
+    return this.saveAISettings(settings);
   }
 
   async saveAISettings(settings: Omit<AISettingsDB, 'id'>): Promise<number> {

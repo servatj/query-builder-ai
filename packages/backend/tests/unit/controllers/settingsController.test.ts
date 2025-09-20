@@ -6,13 +6,27 @@ import {
   updateDatabase, 
   testDatabase, 
   updateAI, 
-  testAI 
+  testAI,
+  createDatabase,
+  createRules,
+  createSchema,
+  updateSchema,
+  upsertDatabase,
+  getAllDatabases,
+  getAllAISettings,
+  getRules,
+  getSchema,
+  switchDatabase
 } from '../../../src/controllers/settingsController';
 
 // Mock the services
 vi.mock('../../../src/services/rulesService', () => ({
   getCachedRules: vi.fn(),
-  saveRulesToFile: vi.fn()
+  upsertRulesToFile: vi.fn(),
+  loadRulesFromDatabase: vi.fn(),
+  upsertRulesToDatabase: vi.fn(),
+  upsertSchemaToDatabase: vi.fn(),
+  updateSchemaInDatabase: vi.fn()
 }));
 
 vi.mock('../../../src/services/databaseSystemService', () => ({
@@ -20,8 +34,24 @@ vi.mock('../../../src/services/databaseSystemService', () => ({
   default: {
     getDefaultDatabaseConfig: vi.fn(),
     getDefaultAISettings: vi.fn(),
-    saveDatabaseConfig: vi.fn(),
-    saveAISettings: vi.fn()
+    upsertDatabaseConfig: vi.fn(),
+    saveAISettings: vi.fn(),
+    upsertAISettings: vi.fn(),
+    getDatabaseConfigs: vi.fn(),
+    getAISettings: vi.fn(),
+    getDatabaseSchema: vi.fn(),
+    switchDefaultDatabase: vi.fn()
+  },
+  databaseService: {
+    getDefaultDatabaseConfig: vi.fn(),
+    getDefaultAISettings: vi.fn(),
+    upsertDatabaseConfig: vi.fn(),
+    saveAISettings: vi.fn(),
+    upsertAISettings: vi.fn(),
+    getDatabaseConfigs: vi.fn(),
+    getAISettings: vi.fn(),
+    getDatabaseSchema: vi.fn(),
+    switchDefaultDatabase: vi.fn()
   }
 }));
 
@@ -40,7 +70,7 @@ vi.mock('openai', () => ({
   OpenAI: vi.fn()
 }));
 
-import { getCachedRules, saveRulesToFile } from '../../../src/services/rulesService';
+import { getCachedRules, upsertRulesToFile, loadRulesFromDatabase, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase } from '../../../src/services/rulesService';
 import databaseService from '../../../src/services/databaseSystemService';
 import openaiService from '../../../src/services/openaiService';
 
@@ -166,7 +196,7 @@ describe('settingsController', () => {
 
   describe('updateRules', () => {
     it('should successfully update rules', async () => {
-      vi.mocked(saveRulesToFile).mockResolvedValue();
+      vi.mocked(upsertRulesToDatabase).mockResolvedValue();
       
       const req = {
         body: {
@@ -178,7 +208,7 @@ describe('settingsController', () => {
       
       await updateRules(req, res);
       
-      expect(saveRulesToFile).toHaveBeenCalledWith({
+      expect(upsertRulesToDatabase).toHaveBeenCalledWith({
         schema: mockRules.schema,
         query_patterns: mockRules.query_patterns
       });
@@ -218,7 +248,7 @@ describe('settingsController', () => {
     });
 
     it('should return 500 error when save fails', async () => {
-      vi.mocked(saveRulesToFile).mockRejectedValue(new Error('Save error'));
+      vi.mocked(upsertRulesToDatabase).mockRejectedValue(new Error('Save error'));
       
       const req = {
         body: {
@@ -237,7 +267,7 @@ describe('settingsController', () => {
 
   describe('updateDatabase', () => {
     it('should successfully update database configuration', async () => {
-      vi.mocked(databaseService.saveDatabaseConfig).mockResolvedValue();
+      vi.mocked(databaseService.upsertDatabaseConfig).mockResolvedValue(1);
       
       const req = {
         body: {
@@ -254,7 +284,7 @@ describe('settingsController', () => {
       
       await updateDatabase(req, res);
       
-      expect(databaseService.saveDatabaseConfig).toHaveBeenCalledWith({
+      expect(databaseService.upsertDatabaseConfig).toHaveBeenCalledWith({
         name: 'New DB',
         host: 'newhost.com',
         port: 3306,
@@ -272,7 +302,7 @@ describe('settingsController', () => {
     });
 
     it('should use default values for optional fields', async () => {
-      vi.mocked(databaseService.saveDatabaseConfig).mockResolvedValue();
+      vi.mocked(databaseService.upsertDatabaseConfig).mockResolvedValue(1);
       
       const req = {
         body: {
@@ -286,7 +316,7 @@ describe('settingsController', () => {
       
       await updateDatabase(req, res);
       
-      expect(databaseService.saveDatabaseConfig).toHaveBeenCalledWith({
+      expect(databaseService.upsertDatabaseConfig).toHaveBeenCalledWith({
         name: 'Custom Configuration',
         host: 'localhost',
         port: 3306,
@@ -314,7 +344,7 @@ describe('settingsController', () => {
     });
 
     it('should return 500 error when save fails', async () => {
-      vi.mocked(databaseService.saveDatabaseConfig).mockRejectedValue(new Error('Save error'));
+      vi.mocked(databaseService.upsertDatabaseConfig).mockRejectedValue(new Error('Save error'));
       
       const req = {
         body: {
@@ -426,7 +456,7 @@ describe('settingsController', () => {
 
   describe('updateAI', () => {
     it('should successfully update AI configuration', async () => {
-      vi.mocked(databaseService.saveAISettings).mockResolvedValue();
+      vi.mocked(databaseService.saveAISettings).mockResolvedValue(1);
       vi.mocked(openaiService.updateConfig).mockImplementation(() => {});
       
       const req = {
@@ -520,7 +550,7 @@ describe('settingsController', () => {
     });
 
     it('should handle disabled AI configuration', async () => {
-      vi.mocked(databaseService.saveAISettings).mockResolvedValue();
+      vi.mocked(databaseService.saveAISettings).mockResolvedValue(1);
       
       const req = {
         body: {
@@ -631,6 +661,151 @@ describe('settingsController', () => {
       expect(res.json).toHaveBeenCalledWith({
         success: false,
         error: 'AI connection failed: Invalid API key'
+      });
+    });
+  });
+
+  describe('New CRUD endpoints', () => {
+    describe('createDatabase', () => {
+      it('should successfully create database configuration', async () => {
+        vi.mocked(databaseService.upsertDatabaseConfig).mockResolvedValue(1);
+        
+        const req = {
+          body: {
+            name: 'New DB',
+            host: 'localhost',
+            port: '3306',
+            database_name: 'newdb',
+            username: 'user'
+          }
+        } as Request;
+        const res = createMockRes();
+        
+        await createDatabase(req, res);
+        
+        expect(databaseService.upsertDatabaseConfig).toHaveBeenCalledWith({
+          name: 'New DB',
+          host: 'localhost',
+          port: 3306,
+          database_name: 'newdb',
+          username: 'user',
+          password: '',
+          ssl_enabled: false,
+          is_active: true,
+          is_default: true
+        });
+        expect(res.json).toHaveBeenCalledWith({
+          success: true,
+          message: 'Database configuration created successfully'
+        });
+      });
+    });
+
+    describe('getAllDatabases', () => {
+      it('should return all database configurations', async () => {
+        const mockDatabases = [mockDatabaseConfig, { ...mockDatabaseConfig, id: 2, name: 'DB2' }];
+        vi.mocked(databaseService.getDatabaseConfigs).mockResolvedValue(mockDatabases);
+        
+        const req = {} as Request;
+        const res = createMockRes();
+        
+        await getAllDatabases(req, res);
+        
+        expect(res.json).toHaveBeenCalledWith({
+          success: true,
+          data: mockDatabases
+        });
+      });
+    });
+
+    describe('getRules', () => {
+      it('should return rules from database', async () => {
+        vi.mocked(loadRulesFromDatabase).mockResolvedValue(mockRules);
+        
+        const req = {} as Request;
+        const res = createMockRes();
+        
+        await getRules(req, res);
+        
+        expect(res.json).toHaveBeenCalledWith({
+          success: true,
+          data: mockRules
+        });
+      });
+
+      it('should return 404 when no rules found', async () => {
+        vi.mocked(loadRulesFromDatabase).mockResolvedValue(null);
+        
+        const req = {} as Request;
+        const res = createMockRes();
+        
+        await getRules(req, res);
+        
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(res.json).toHaveBeenCalledWith({ error: 'No rules configuration found' });
+      });
+    });
+
+    describe('createSchema', () => {
+      it('should successfully create schema', async () => {
+        vi.mocked(upsertSchemaToDatabase).mockResolvedValue();
+        
+        const req = {
+          body: {
+            schema: mockRules.schema
+          }
+        } as Request;
+        const res = createMockRes();
+        
+        await createSchema(req, res);
+        
+        expect(upsertSchemaToDatabase).toHaveBeenCalledWith(mockRules.schema);
+        expect(res.json).toHaveBeenCalledWith({
+          success: true,
+          message: 'Schema configuration created successfully',
+          tables: 2
+        });
+      });
+
+      it('should return 400 when schema is missing', async () => {
+        const req = { body: {} } as Request;
+        const res = createMockRes();
+        
+        await createSchema(req, res);
+        
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({ error: 'Schema is required and must be an object' });
+      });
+    });
+
+    describe('switchDatabase', () => {
+      it('should successfully switch default database', async () => {
+        vi.mocked(databaseService.switchDefaultDatabase).mockResolvedValue(true);
+        
+        const req = {
+          params: { databaseId: '2' }
+        } as any as Request;
+        const res = createMockRes();
+        
+        await switchDatabase(req, res);
+        
+        expect(databaseService.switchDefaultDatabase).toHaveBeenCalledWith(2);
+        expect(res.json).toHaveBeenCalledWith({
+          success: true,
+          message: 'Default database switched successfully'
+        });
+      });
+
+      it('should return 400 for invalid database ID', async () => {
+        const req = {
+          params: { databaseId: 'invalid' }
+        } as any as Request;
+        const res = createMockRes();
+        
+        await switchDatabase(req, res);
+        
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({ error: 'Valid database ID is required' });
       });
     });
   });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -161,7 +161,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({ schema, onSchemaChange }) =
             </CardHeader>
             <CardContent className="space-y-4">
               <TableEditor
-                tableName={editingTable}
                 tableInfo={schema[editingTable]}
                 onSave={(updatedTable) => {
                   updateTable(editingTable, updatedTable);
@@ -178,13 +177,12 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({ schema, onSchemaChange }) =
 };
 
 interface TableEditorProps {
-  tableName: string;
   tableInfo: TableSchema;
   onSave: (tableInfo: TableSchema) => void;
   onCancel: () => void;
 }
 
-const TableEditor: React.FC<TableEditorProps> = ({ tableName, tableInfo, onSave, onCancel }) => {
+const TableEditor: React.FC<TableEditorProps> = ({ tableInfo, onSave, onCancel }) => {
   const [description, setDescription] = useState(tableInfo.description);
   const [columns, setColumns] = useState(tableInfo.columns.join('\n'));
 

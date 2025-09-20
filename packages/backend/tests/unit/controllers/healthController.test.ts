@@ -61,6 +61,8 @@ describe('healthController', () => {
         status: 'healthy',
         timestamp: '2023-01-01T12:00:00.000Z',
         database: 'connected',
+        database_host: 'localhost:3310',
+        database_name: 'sakila',
         openai: 'enabled',
         services: {
           database: 'connected',
@@ -85,6 +87,8 @@ describe('healthController', () => {
         status: 'healthy',
         timestamp: '2023-01-01T12:00:00.000Z',
         database: 'connected',
+        database_host: 'localhost:3310',
+        database_name: 'sakila',
         openai: 'disabled',
         services: {
           database: 'connected',
@@ -106,6 +110,8 @@ describe('healthController', () => {
         status: 'healthy',
         timestamp: '2023-01-01T12:00:00.000Z',
         database: 'disconnected',
+        database_host: 'localhost:3310',
+        database_name: 'sakila',
         openai: 'enabled',
         services: {
           database: 'disconnected',
@@ -128,6 +134,8 @@ describe('healthController', () => {
         status: 'healthy',
         timestamp: '2023-01-01T12:00:00.000Z',
         database: 'error',
+        database_host: 'localhost:3310',
+        database_name: 'sakila',
         openai: 'enabled',
         services: {
           database: 'error',

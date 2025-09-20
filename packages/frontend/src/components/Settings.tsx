@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SchemaEditor from '@/components/SchemaEditor';
+import DatabaseForm from '@/components/DatabaseForm';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -65,6 +66,7 @@ const Settings: React.FC = () => {
   const [availableDatabases, setAvailableDatabases] = useState<any[]>([]);
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(null);
   const [schemaEditMode, setSchemaEditMode] = useState<'visual' | 'json'>('visual');
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     loadCurrentSettings();
@@ -81,11 +83,11 @@ const Settings: React.FC = () => {
       setAiSettingsJson(JSON.stringify(response.data.ai || aiSettings, null, 2));
       
       // Load available databases
-      const dbResponse = await axios.get(`${API_BASE_URL}/api/databases`);
-      setAvailableDatabases(dbResponse.data);
+      const dbResponse = await axios.get(`${API_BASE_URL}/api/settings/databases`);
+      setAvailableDatabases(dbResponse.data.data || []);
       
       // Set the current default database
-      const defaultDb = dbResponse.data.find((db: any) => db.is_default);
+      const defaultDb = (dbResponse.data.data || []).find((db: any) => db.is_default);
       if (defaultDb) {
         setSelectedDatabaseId(defaultDb.id);
       }
@@ -242,7 +244,7 @@ const Settings: React.FC = () => {
     setSuccess(null);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/databases/${selectedDatabaseId}/switch`);
+      const response = await axios.post(`${API_BASE_URL}/api/settings/databases/${selectedDatabaseId}/switch`);
       if (response.data.success) {
         setSuccess('Database switched successfully!');
         // Reload settings to get the new default database
@@ -258,6 +260,27 @@ const Settings: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to switch database');
+    }
+    setIsLoading(false);
+  };
+
+  const handleCreateDatabase = async (formData: any) => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/settings/database/create`, formData);
+      if (response.data.success) {
+        setSuccess('Database configuration created successfully!');
+        setShowCreateForm(false);
+        // Reload the available databases list
+        await loadCurrentSettings();
+      } else {
+        setError('Failed to create database configuration: ' + response.data.error);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || 'Failed to create database configuration');
     }
     setIsLoading(false);
   };
@@ -593,14 +616,35 @@ const Settings: React.FC = () => {
 
       {/* Database Settings Tab */}
       {activeTab === 'database' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Database Configuration</CardTitle>
-            <CardDescription>
-              Configure database connections and settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <div className="space-y-6">
+          {/* Create New Database Form */}
+          {showCreateForm && (
+            <DatabaseForm
+              onSubmit={handleCreateDatabase}
+              onCancel={() => setShowCreateForm(false)}
+              isLoading={isLoading}
+            />
+          )}
+          
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Database Configuration</CardTitle>
+                  <CardDescription>
+                    Configure database connections and settings
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  variant={showCreateForm ? "outline" : "default"}
+                  disabled={isLoading}
+                >
+                  {showCreateForm ? 'Cancel' : 'Add New Database'}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
             {/* Database Selection */}
             <div className="space-y-3">
               <label className="font-medium text-sm">Active Database</label>
@@ -687,8 +731,9 @@ const Settings: React.FC = () => {
 }`}
               </pre>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* AI Settings Tab */}

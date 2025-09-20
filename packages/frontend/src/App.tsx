@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Settings from '@/components/Settings';
 import ThemeToggle from '@/components/ThemeToggle';
+import SqlEditor from '@/components/SqlEditor';
+import { format } from 'sql-formatter';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -113,7 +115,24 @@ function App() {
     
     try {
       const response = await axios.post(`${API_BASE_URL}/api/generate-query`, { prompt: naturalLanguageQuery });
-      setSqlQuery(response.data.sql);
+      
+      // Auto-format the generated SQL
+      let formattedSql = response.data.sql;
+      try {
+        formattedSql = format(response.data.sql, {
+          language: 'sql',
+          keywordCase: 'upper',
+          indentStyle: 'standard',
+          logicalOperatorNewline: 'before',
+          expressionWidth: 50,
+          linesBetweenQueries: 2
+        });
+      } catch (formatError) {
+        console.warn('Failed to format generated SQL, using original:', formatError);
+        // Use original SQL if formatting fails
+      }
+      
+      setSqlQuery(formattedSql);
       setQueryMetadata(response.data);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to generate query. Please check the backend.';
@@ -342,17 +361,6 @@ function App() {
                   <div className="flex justify-between items-center">
                     <label htmlFor="sql-query" className="font-medium">2. Generated SQL Query</label>
                     <div className="flex items-center gap-2">
-                      {sqlQuery && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleCopyQuery}
-                          disabled={isLoading}
-                          className="text-xs"
-                        >
-                          📋 Copy Query
-                        </Button>
-                      )}
                       {queryMetadata && (
                         <div className="text-sm">
                           <span className={`font-medium ${getConfidenceColor(queryMetadata.confidence)}`}>
@@ -363,19 +371,18 @@ function App() {
                     </div>
                   </div>
                   
-                  <div className={`rounded-md border p-2 transition-colors ${
-                    isValid === true ? 'border-green-500' : 
-                    isValid === false ? 'border-red-500' : 
-                    'border-input'
+                  <div className={`transition-colors ${
+                    isValid === true ? 'ring-2 ring-green-500' : 
+                    isValid === false ? 'ring-2 ring-red-500' : 
+                    ''
                   }`}>
-                    <Textarea
-                      id="sql-query"
-                      placeholder="Your generated SQL query will appear here..."
+                    <SqlEditor
                       value={sqlQuery}
-                      onChange={(e) => setSqlQuery(e.target.value)}
-                      className="resize-none border-0 focus:ring-0 font-mono text-sm"
-                      rows={6}
-                      disabled={isLoading}
+                      onChange={setSqlQuery}
+                      height="200px"
+                      placeholder="Your generated SQL query will appear here..."
+                      readOnly={isLoading}
+                      onCopy={handleCopyQuery}
                     />
                   </div>
 

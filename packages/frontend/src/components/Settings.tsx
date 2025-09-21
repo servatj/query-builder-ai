@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import SchemaEditor from '@/components/SchemaEditor';
 import DatabaseForm from '@/components/DatabaseForm';
 
 const API_BASE_URL = 'http://localhost:3001';
@@ -62,10 +61,9 @@ const Settings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'rules' | 'schema' | 'database' | 'ai'>('rules');
+  const [activeTab, setActiveTab] = useState<'rules' | 'database' | 'ai'>('rules');
   const [availableDatabases, setAvailableDatabases] = useState<any[]>([]);
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(null);
-  const [schemaEditMode, setSchemaEditMode] = useState<'visual' | 'json'>('visual');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
@@ -286,64 +284,9 @@ const Settings: React.FC = () => {
     setIsLoading(false);
   };
 
-  const handleSaveSchema = async () => {
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const parsedSettings = JSON.parse(settingsJson);
-      
-      // Validate the structure
-      if (!parsedSettings.schema || !parsedSettings.query_patterns) {
-        throw new Error('Invalid settings format. Must contain "schema" and "query_patterns" properties.');
-      }
-
-      await axios.post(`${API_BASE_URL}/api/settings/rules`, parsedSettings);
-      setSettings(parsedSettings);
-      setSuccess('Schema updated successfully!');
-    } catch (err: any) {
-      if (err instanceof SyntaxError) {
-        setError('Invalid JSON format. Please check your syntax.');
-      } else {
-        setError(err.response?.data?.error || err.message || 'Failed to save schema');
-      }
-    }
-    setIsLoading(false);
-  };
-
-  const handleSchemaChange = (newSchema: Record<string, { columns: string[]; description: string; }>) => {
-    if (!settings) return;
-    
-    const updatedSettings = {
-      ...settings,
-      schema: newSchema
-    };
-    
-    setSettings(updatedSettings);
-    setSettingsJson(JSON.stringify(updatedSettings, null, 2));
-  };
-
-  const handleSaveVisualSchema = async () => {
-    if (!settings) return;
-    
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await axios.post(`${API_BASE_URL}/api/settings/rules`, settings);
-      setSuccess('Schema updated successfully!');
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to save schema');
-    }
-    setIsLoading(false);
-  };
 
   const resetToDefaults = () => {
     if (activeTab === 'rules' && settings) {
-      setSettingsJson(JSON.stringify(settings, null, 2));
-    } else if (activeTab === 'schema' && settings) {
       setSettingsJson(JSON.stringify(settings, null, 2));
     } else if (activeTab === 'database') {
       setDbSettingsJson(JSON.stringify(databaseSettings, null, 2));
@@ -449,16 +392,6 @@ const Settings: React.FC = () => {
           Query Rules
         </button>
         <button
-          onClick={() => setActiveTab('schema')}
-          className={`px-4 py-2 rounded-md transition-colors ${
-            activeTab === 'schema' 
-              ? 'bg-background text-foreground shadow-sm' 
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Schema
-        </button>
-        <button
           onClick={() => setActiveTab('database')}
           className={`px-4 py-2 rounded-md transition-colors ${
             activeTab === 'database' 
@@ -545,148 +478,6 @@ const Settings: React.FC = () => {
         </Card>
       )}
 
-      {/* Schema Configuration Tab */}
-      {activeTab === 'schema' && (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Database Schema Configuration</CardTitle>
-                <CardDescription>
-                  Define your database tables, columns, and their descriptions for AI-powered query generation
-                </CardDescription>
-              </div>
-              
-              {/* Editor Mode Toggle */}
-              <div className="flex space-x-1 bg-muted p-1 rounded-lg">
-                <button
-                  onClick={() => setSchemaEditMode('visual')}
-                  className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                    schemaEditMode === 'visual' 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Visual
-                </button>
-                <button
-                  onClick={() => setSchemaEditMode('json')}
-                  className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                    schemaEditMode === 'json' 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  JSON
-                </button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {schemaEditMode === 'visual' ? (
-              // Visual Schema Editor
-              <div className="space-y-4">
-                {settings && (
-                  <SchemaEditor
-                    schema={settings.schema || {}}
-                    onSchemaChange={handleSchemaChange}
-                  />
-                )}
-                
-                <div className="flex gap-2">
-                  <Button onClick={handleSaveVisualSchema} disabled={isLoading || !settings}>
-                    {isLoading ? 'Saving...' : 'Save Schema'}
-                  </Button>
-                  <Button variant="outline" onClick={resetToDefaults} disabled={isLoading}>
-                    Reset to Current
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              // JSON Schema Editor
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="schema-json" className="font-medium">
-                    Database Schema (JSON)
-                  </label>
-                  <Textarea
-                    id="schema-json"
-                    value={settingsJson}
-                    onChange={(e) => setSettingsJson(e.target.value)}
-                    placeholder="Enter your database schema configuration..."
-                    className="font-mono text-sm"
-                    rows={25}
-                    disabled={isLoading}
-                  />
-                  <div className="text-xs text-muted-foreground">
-                    Define tables with their columns and descriptions. This helps the AI understand your database structure.
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button onClick={handleSaveSchema} disabled={isLoading}>
-                    {isLoading ? 'Saving...' : 'Save Schema'}
-                  </Button>
-                  <Button variant="outline" onClick={resetToDefaults} disabled={isLoading}>
-                    Reset to Current
-                  </Button>
-                </div>
-
-                {/* Schema preview and current tables */}
-                {settings && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h3 className="font-medium mb-2">Current Schema Summary</h3>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <div>Total tables: {Object.keys(settings.schema || {}).length}</div>
-                        <div>Query patterns: {settings.query_patterns?.length || 0}</div>
-                      </div>
-                      
-                      <h4 className="font-medium mt-3 mb-1">Tables</h4>
-                      <div className="text-xs text-muted-foreground max-h-40 overflow-y-auto space-y-1">
-                        {Object.entries(settings.schema || {}).map(([table, info]) => (
-                          <div key={table} className="border-l-2 border-gray-300 pl-2">
-                            <div className="font-medium text-foreground">{table}</div>
-                            <div className="text-xs">{info.description}</div>
-                            <div className="text-xs opacity-75">{info.columns.length} columns</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h3 className="font-medium mb-2">Schema Template</h3>
-                      <pre className="text-xs text-muted-foreground overflow-x-auto">
-{`{
-  "schema": {
-    "users": {
-      "columns": ["id", "name", "email"],
-      "description": "User accounts table"
-    },
-    "orders": {
-      "columns": ["id", "user_id", "total"],
-      "description": "Customer orders"
-    }
-  },
-  "query_patterns": [...]
-}`}
-                      </pre>
-                      
-                      <h4 className="font-medium mt-3 mb-1">Best Practices</h4>
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <div>• Use clear, descriptive table names</div>
-                        <div>• Include all relevant columns</div>
-                        <div>• Write meaningful descriptions</div>
-                        <div>• Follow consistent naming conventions</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Database Settings Tab */}
       {activeTab === 'database' && (

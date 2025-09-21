@@ -29,7 +29,8 @@
     "reset": "npm run clean && npm install",
     "postinstall": "npm run setup-env",
     "setup-env": "[ ! -f packages/backend/.env ] && cp packages/backend/.env.example packages/backend/.env || true",
-    "schema:generate": "cd packages/backend && npm run schema:generate"
+    "schema:generate": "cd packages/backend && npm run schema:generate",
+    "start-landing": "cd landing && npx serve -p 8080"
   },
   "keywords": [
     "ai",

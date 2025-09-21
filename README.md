@@ -1,4 +1,5 @@
-# AI Query Builder 🚀
+<img width="393" height="102" alt="image" src="https://github.com/user-attachments/assets/70efa477-5086-4472-a528-dafb649253bb" />
+
 
 <img width="1569" height="967" alt="image" src="https://github.com/user-attachments/assets/02358333-6c74-49db-a1b0-bcb07368b9d1" />
 

@@ -32,7 +32,11 @@
       "Bash(npx tsc:*)",
       "Bash(npx vite:*)",
       "Bash(npm run lint)",
-      "Bash(npx serve:*)"
+      "Bash(npx serve:*)",
+      "Bash(grep:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run:*)",
+      "Bash(timeout 10s npm start)"
     ],
     "deny": []
   }

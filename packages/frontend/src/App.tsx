@@ -428,12 +428,12 @@ function App() {
                 {previewData && previewData.length > 0 && (
                   <div className="space-y-2">
                     <h3 className="font-medium">3. Data Preview</h3>
-                    <div className="rounded-md border max-h-80 overflow-auto">
+                    <div className="rounded-md border-2 border-border max-h-80 overflow-auto">
                       <table className="w-full text-sm">
                         <thead className="sticky top-0 bg-muted">
                           <tr>
                             {Object.keys(previewData[0]).map(key => (
-                              <th key={key} className="p-2 text-left font-semibold border-b">
+                              <th key={key} className="p-2 text-left font-semibold border-b-2 border-border">
                                 {key}
                               </th>
                             ))}
@@ -441,7 +441,7 @@ function App() {
                         </thead>
                         <tbody>
                           {previewData.map((row, i) => (
-                            <tr key={i} className="border-b hover:bg-muted/50">
+                            <tr key={i} className="border-b border-border hover:bg-muted/50">
                               {Object.values(row).map((val: any, j) => (
                                 <td key={j} className="p-2 truncate max-w-xs" title={String(val)}>
                                   {val === null ? (

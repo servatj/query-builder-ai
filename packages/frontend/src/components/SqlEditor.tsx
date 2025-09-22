@@ -183,7 +183,7 @@ const SqlEditor: React.FC<SqlEditorProps> = ({
   };
 
   return (
-    <div className="relative border rounded-md overflow-hidden">
+    <div className="relative border-2 border-border rounded-md overflow-hidden">
       {/* VS Code-like header */}
       <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border-b px-3 py-2 text-sm">
         <div className="flex items-center gap-2">

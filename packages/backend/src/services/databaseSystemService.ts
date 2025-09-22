@@ -117,6 +117,13 @@ class DatabaseSystemService {
       const insertResult = result as mysql.ResultSetHeader;
 
       await connection.commit();
+      
+      // Initialize blank schema for new database configurations
+      const wasInsert = insertResult.affectedRows === 1 && insertResult.insertId > 0;
+      if (wasInsert) {
+        await this.initializeBlankSchema(insertResult.insertId);
+      }
+      
       return insertResult.insertId;
     } catch (error) {
       await connection.rollback();
@@ -337,6 +344,25 @@ class DatabaseSystemService {
         throw new Error('No default database configuration found');
       }
 
+      // First check if we have a stored schema configuration
+      const settingsConnection = await this.getConnection();
+      try {
+        const [rows] = await settingsConnection.execute(
+          'SELECT schema_json FROM database_config_files WHERE database_settings_id = ?',
+          [defaultConfig.id]
+        );
+        const configRows = rows as any[];
+        
+        if (configRows.length > 0 && configRows[0].schema_json) {
+          const storedSchema = configRows[0].schema_json;
+          // If we have a stored schema (including blank {}), use it
+          return storedSchema;
+        }
+      } finally {
+        settingsConnection.release();
+      }
+
+      // Fallback: introspect database schema only if no stored schema exists
       // Create a temporary connection to the target database
       const poolConfig: any = {
         host: defaultConfig.host,
@@ -393,6 +419,24 @@ class DatabaseSystemService {
     } catch (error) {
       console.error('Failed to get database schema:', error);
       return {};
+    }
+  }
+
+  // Initialize blank schema for newly created database configurations
+  private async initializeBlankSchema(databaseSettingsId: number): Promise<void> {
+    const connection = await this.getConnection();
+    try {
+      // Insert blank schema configuration
+      await connection.execute(
+        `INSERT INTO database_config_files (database_settings_id, schema_json, rules_json) 
+         VALUES (?, '{}', '{"schema": {}, "query_patterns": []}')`,
+        [databaseSettingsId]
+      );
+    } catch (error) {
+      console.warn('Failed to initialize blank schema for new database:', error);
+      // Don't throw error - this is not critical for database config creation
+    } finally {
+      connection.release();
     }
   }
 

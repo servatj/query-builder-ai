@@ -37,6 +37,17 @@ interface GeneratedQuery {
   extractedValues: string[];
 }
 
+interface AuditEntry {
+  id: string;
+  timestamp: string;
+  naturalLanguageQuery: string;
+  sqlQuery: string;
+  isValid: boolean;
+  error?: string;
+  rowCount?: number;
+  executionTime?: string;
+}
+
 // New: backend schema types
 type SchemaTable = { columns: string[]; description: string };
 type BackendSchema = Record<string, SchemaTable>;
@@ -60,6 +71,8 @@ function App() {
   } | null>(null);
   // New: store schema from backend
   const [schema, setSchema] = useState<BackendSchema | null>(null);
+  // Audit trail for last 5 executions
+  const [auditTrail, setAuditTrail] = useState<AuditEntry[]>([]);
 
   // Function to load patterns and schema
   const loadPatternsAndSchema = async () => {
@@ -104,6 +117,20 @@ function App() {
       window.removeEventListener('databaseSwitched', handleDatabaseSwitch as EventListener);
     };
   }, []);
+
+  // Function to add entry to audit trail (keep only last 5)
+  const addToAuditTrail = (entry: Omit<AuditEntry, 'id' | 'timestamp'>) => {
+    const newEntry: AuditEntry = {
+      ...entry,
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString()
+    };
+    
+    setAuditTrail(prev => {
+      const updated = [newEntry, ...prev];
+      return updated.slice(0, 5); // Keep only last 5 entries
+    });
+  };
 
   const handleGenerateQuery = async () => {
     setIsLoading(true);
@@ -167,11 +194,37 @@ function App() {
           executionTime: response.data.executionTime,
           limited: response.data.limited
         });
+        
+        // Add successful execution to audit trail
+        addToAuditTrail({
+          naturalLanguageQuery,
+          sqlQuery,
+          isValid: true,
+          rowCount: response.data.rowCount,
+          executionTime: response.data.executionTime
+        });
+      } else {
+        // Add failed validation to audit trail
+        addToAuditTrail({
+          naturalLanguageQuery,
+          sqlQuery,
+          isValid: false,
+          error: 'Validation failed'
+        });
       }
     } catch (err: any) {
       setIsValid(false);
       const errorData = err.response?.data;
-      setError(errorData?.error || 'An unexpected error occurred.');
+      const errorMessage = errorData?.error || 'An unexpected error occurred.';
+      setError(errorMessage);
+      
+      // Add error to audit trail
+      addToAuditTrail({
+        naturalLanguageQuery,
+        sqlQuery,
+        isValid: false,
+        error: errorMessage
+      });
       
       // Show additional error information if available
       if (errorData?.suggestion) {
@@ -537,6 +590,55 @@ function App() {
                   // Fallback: brief guidance when schema not loaded
                   <div className="text-xs text-muted-foreground">
                     Schema not loaded. Ensure the backend is running and exposes /api/patterns.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Audit Trail */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Audit Trail</CardTitle>
+                <CardDescription>
+                  Last 5 query executions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {auditTrail.length > 0 ? (
+                  <div className="space-y-3 max-h-80 overflow-auto pr-1">
+                    {auditTrail.map((entry) => (
+                      <div key={entry.id} className="border border-border rounded-lg p-3 space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </div>
+                        <div className="text-sm font-medium truncate" title={entry.naturalLanguageQuery}>
+                          "{entry.naturalLanguageQuery}"
+                        </div>
+                        <div className="text-xs font-mono bg-muted p-2 rounded truncate" title={entry.sqlQuery}>
+                          {entry.sqlQuery}
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className={`font-medium ${entry.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                            {entry.isValid ? '✅ Success' : '❌ Failed'}
+                          </span>
+                          {entry.isValid && entry.rowCount !== undefined && (
+                            <span className="text-muted-foreground">
+                              {entry.rowCount} rows
+                              {entry.executionTime && ` • ${entry.executionTime}`}
+                            </span>
+                          )}
+                        </div>
+                        {entry.error && (
+                          <div className="text-xs text-red-600 truncate" title={entry.error}>
+                            Error: {entry.error}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    No queries executed yet. Run a query to see execution history.
                   </div>
                 )}
               </CardContent>

@@ -7,6 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Settings from '@/components/Settings';
 import ThemeToggle from '@/components/ThemeToggle';
 import SqlEditor from '@/components/SqlEditor';
+import ERDViewer from '@/components/ERDViewer';
+import DiagramVisualizer from '@/components/DiagramVisualizer';
 import { format } from 'sql-formatter';
 
 const API_BASE_URL = 'http://localhost:3001';
@@ -53,7 +55,7 @@ type SchemaTable = { columns: string[]; description: string };
 type BackendSchema = Record<string, SchemaTable>;
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'query-builder' | 'settings'>('query-builder');
+  const [currentPage, setCurrentPage] = useState<'query-builder' | 'settings' | 'schema' | 'diagram'>('query-builder');
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState('');
   const [sqlQuery, setSqlQuery] = useState('');
   const [isValid, setIsValid] = useState<boolean | null>(null);
@@ -309,7 +311,7 @@ function App() {
         </div>
 
         {/* Navigation below logo */}
-        <div className="flex justify-center">
+        <div className="flex justify-start">
           <div className="flex space-x-1 bg-muted p-1 rounded-lg">
             <button
               onClick={() => setCurrentPage('query-builder')}
@@ -351,12 +353,64 @@ function App() {
               </svg>
               <span>Settings</span>
             </button>
+            <button
+              onClick={() => setCurrentPage('schema')}
+              className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
+                currentPage === 'schema' 
+                  ? 'bg-background text-foreground shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" 
+                />
+              </svg>
+              <span>Schema</span>
+            </button>
+            <button
+              onClick={() => setCurrentPage('diagram')}
+              className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
+                currentPage === 'diagram' 
+                  ? 'bg-background text-foreground shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" 
+                />
+              </svg>
+              <span>Diagram</span>
+            </button>
           </div>
         </div>
 
         {/* Conditional Page Rendering */}
         {currentPage === 'settings' ? (
           <Settings />
+        ) : currentPage === 'schema' ? (
+          <ERDViewer />
+        ) : currentPage === 'diagram' ? (
+          <DiagramVisualizer />
         ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Query Builder */}

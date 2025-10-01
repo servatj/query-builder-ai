@@ -9,6 +9,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import SqlEditor from '@/components/SqlEditor';
 import ERDViewer from '@/components/ERDViewer';
 import DiagramVisualizer from '@/components/DiagramVisualizer';
+import DatabaseSwitcher from '@/components/DatabaseSwitcher';
 import { format } from 'sql-formatter';
 
 const API_BASE_URL = 'http://localhost:3001';
@@ -296,6 +297,7 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4">
+            <DatabaseSwitcher onDatabaseChange={loadPatternsAndSchema} />
             <ThemeToggle />
             {healthStatus && (
               <div className="text-right">
@@ -317,8 +319,8 @@ function App() {
               onClick={() => setCurrentPage('query-builder')}
               className={`px-4 py-2 rounded-md transition-colors ${
                 currentPage === 'query-builder' 
-                  ? 'bg-background text-foreground shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-purple-600 text-white shadow-sm' 
+                  : 'text-muted-foreground hover:text-purple-600'
               }`}
             >
               Query Builder
@@ -327,8 +329,8 @@ function App() {
               onClick={() => setCurrentPage('settings')}
               className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
                 currentPage === 'settings' 
-                  ? 'bg-background text-foreground shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-purple-600 text-white shadow-sm' 
+                  : 'text-muted-foreground hover:text-purple-600'
               }`}
             >
               <svg 
@@ -357,8 +359,8 @@ function App() {
               onClick={() => setCurrentPage('schema')}
               className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
                 currentPage === 'schema' 
-                  ? 'bg-background text-foreground shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-purple-600 text-white shadow-sm' 
+                  : 'text-muted-foreground hover:text-purple-600'
               }`}
             >
               <svg 
@@ -381,8 +383,8 @@ function App() {
               onClick={() => setCurrentPage('diagram')}
               className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
                 currentPage === 'diagram' 
-                  ? 'bg-background text-foreground shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-purple-600 text-white shadow-sm' 
+                  : 'text-muted-foreground hover:text-purple-600'
               }`}
             >
               <svg 

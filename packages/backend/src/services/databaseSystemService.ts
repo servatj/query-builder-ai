@@ -422,6 +422,61 @@ class DatabaseSystemService {
     }
   }
 
+  // Get foreign key relationships from the active database
+  async getDatabaseRelationships(): Promise<
+    Array<{ from: string; fromColumn: string; to: string; toColumn: string }>
+  > {
+    try {
+      const defaultConfig = await this.getDefaultDatabaseConfig();
+      if (!defaultConfig) {
+        throw new Error('No default database configuration found');
+      }
+
+      const poolConfig: any = {
+        host: defaultConfig.host,
+        port: defaultConfig.port,
+        user: defaultConfig.username,
+        password: defaultConfig.password,
+        database: defaultConfig.database_name,
+        waitForConnections: true,
+        connectionLimit: 1,
+        queueLimit: 0
+      };
+
+      if (defaultConfig.ssl_enabled) {
+        poolConfig.ssl = {};
+      }
+
+      const targetPool = mysql.createPool(poolConfig);
+      const connection = await targetPool.getConnection();
+      try {
+        const [rows] = await connection.query<RowDataPacket[]>(
+          `SELECT TABLE_NAME as from_table, COLUMN_NAME as from_column,
+                  REFERENCED_TABLE_NAME as to_table, REFERENCED_COLUMN_NAME as to_column
+             FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME IS NOT NULL
+            ORDER BY TABLE_NAME, COLUMN_NAME`,
+          [defaultConfig.database_name]
+        );
+
+        const results = (rows as any[]).map((r) => ({
+          from: r.from_table as string,
+          fromColumn: r.from_column as string,
+          to: r.to_table as string,
+          toColumn: (r.to_column as string) || 'id'
+        }));
+
+        return results;
+      } finally {
+        connection.release();
+        await targetPool.end();
+      }
+    } catch (error) {
+      console.error('Failed to get database relationships:', error);
+      return [];
+    }
+  }
+
   // Initialize blank schema for newly created database configurations
   private async initializeBlankSchema(databaseSettingsId: number): Promise<void> {
     const connection = await this.getConnection();

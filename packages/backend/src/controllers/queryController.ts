@@ -16,11 +16,13 @@ export const getPatterns = async (_req: Request, res: Response) => {
     }));
     
     // Get dynamic schema from the active database instead of static rules.json
-    const dynamicSchema = await databaseService.getDatabaseSchema();
+  const dynamicSchema = await databaseService.getDatabaseSchema();
+  const relationships = await databaseService.getDatabaseRelationships();
     
     return res.json({ 
       patterns, 
       schema: dynamicSchema, // Use dynamic schema instead of rules.schema
+      relationships,
       total: patterns.length 
     });
   } catch (error) {

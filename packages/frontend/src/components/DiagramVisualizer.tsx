@@ -120,7 +120,7 @@ function DiagramVisualizer() {
       const response = await axios.get(`${API_BASE_URL}/api/patterns`);
       if (response.data.schema) {
         setSchema(response.data.schema);
-        generateDiagram(response.data.schema, layoutAlgorithm);
+        generateDiagram(response.data.schema, layoutAlgorithm, response.data.relationships);
       } else {
         setError('No schema data available');
       }
@@ -172,9 +172,18 @@ function DiagramVisualizer() {
     return relationships;
   };
 
-  const generateDiagram = (schemaData: DatabaseSchema, layout: 'hierarchical' | 'grid' | 'circular') => {
+  const generateDiagram = (
+    schemaData: DatabaseSchema,
+    layout: 'hierarchical' | 'grid' | 'circular',
+    apiRelationships?: Array<{ from: string; fromColumn: string; to: string; toColumn: string }>
+  ) => {
     const tableNames = Object.keys(schemaData);
-    const relationships = detectRelationships(schemaData);
+    const relationshipsFromApi = (apiRelationships || []).filter(r =>
+      r.from in schemaData && r.to in schemaData
+    );
+    const relationships = relationshipsFromApi.length > 0
+      ? relationshipsFromApi.map(r => ({ ...r, type: 'many-to-one' as const }))
+      : detectRelationships(schemaData);
     
     // Generate nodes
     const newNodes: Node[] = [];
@@ -196,6 +205,7 @@ function DiagramVisualizer() {
     // Generate edges
     // Check if dark mode is active
     const isDarkMode = document.documentElement.classList.contains('dark');
+    const purple = '#a855f7'; // Tailwind purple-500 to match Generate button
     const newEdges: Edge[] = relationships.map((rel, idx) => ({
       id: `${rel.from}-${rel.to}-${idx}`,
       source: rel.from,
@@ -205,10 +215,10 @@ function DiagramVisualizer() {
       label: rel.fromColumn,
       labelStyle: { fontSize: 10, fill: isDarkMode ? '#d1d5db' : '#666', fontWeight: 500 },
       labelBgStyle: { fill: isDarkMode ? '#374151' : '#fff', fillOpacity: 0.9 },
-      style: { stroke: '#3b82f6', strokeWidth: 2 },
+      style: { stroke: purple, strokeWidth: 2 },
       markerEnd: {
         type: 'arrowclosed' as const,
-        color: '#3b82f6',
+        color: purple,
       },
     }));
     

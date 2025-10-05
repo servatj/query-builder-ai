@@ -3,6 +3,7 @@ import openaiService, { AIConfig } from '../services/openaiService';
 import databaseService, { DatabaseConfig, AISettingsDB } from '../services/databaseSystemService';
 import { getCachedRules, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase, loadRulesFromDatabase, loadSchemaFromDatabase, clearCachedRules } from '../services/rulesService';
 import { recreateDestinationPool } from '../index';
+import { requireNonSandboxMode, getSandboxStatus } from '../utils/sandbox';
 
 
 export const getSettings = async (_req: Request, res: Response) => {
@@ -10,6 +11,8 @@ export const getSettings = async (_req: Request, res: Response) => {
     const rules = await getCachedRules();
     const defaultDbConfig = await databaseService.getDefaultDatabaseConfig();
     const defaultAiConfig = await databaseService.getDefaultAISettings();
+    const sandboxStatus = getSandboxStatus();
+    
     return res.json({
       rules,
       database: defaultDbConfig || {
@@ -32,7 +35,8 @@ export const getSettings = async (_req: Request, res: Response) => {
         maxTokens: 1000,
         is_active: true,
         is_default: true
-      }
+      },
+      ...sandboxStatus
     });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch settings' });
@@ -41,6 +45,7 @@ export const getSettings = async (_req: Request, res: Response) => {
 
 export const upsertDatabase = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { name, host, port, database_name, username, password, ssl_enabled } = req.body;
     if (!host || !port || !database_name || !username) {
       return res.status(400).json({ error: 'Missing required fields: host, port, database_name, username are required' });
@@ -67,6 +72,7 @@ export const upsertDatabase = async (req: Request, res: Response) => {
 
 export const createSchema = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { schema } = req.body;
     if (!schema || typeof schema !== 'object') {
       return res.status(400).json({ error: 'Schema is required and must be an object' });
@@ -81,6 +87,7 @@ export const createSchema = async (req: Request, res: Response) => {
 
 export const updateSchema = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { schema } = req.body;
     if (!schema || typeof schema !== 'object') {
       return res.status(400).json({ error: 'Schema is required and must be an object' });
@@ -95,6 +102,7 @@ export const updateSchema = async (req: Request, res: Response) => {
 
 export const createRules = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { schema, query_patterns } = req.body;
     if (!schema || !query_patterns || !Array.isArray(query_patterns)) {
       return res.status(400).json({ error: 'Both schema and query_patterns (array) are required' });
@@ -109,6 +117,7 @@ export const createRules = async (req: Request, res: Response) => {
 
 export const updateRules = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { schema, query_patterns } = req.body;
     if (!schema || !query_patterns) return res.status(400).json({ error: 'Both schema and query_patterns are required' });
     if (!Array.isArray(query_patterns)) return res.status(400).json({ error: 'query_patterns must be an array' });
@@ -122,6 +131,7 @@ export const updateRules = async (req: Request, res: Response) => {
 
 export const updateDatabase = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { name, host, port, database_name, username, password, ssl_enabled } = req.body;
     if (!host || !port || !database_name || !username) {
       return res.status(400).json({ error: 'Missing required fields: host, port, database_name, username are required' });
@@ -148,6 +158,7 @@ export const updateDatabase = async (req: Request, res: Response) => {
 
 export const createDatabase = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { name, host, port, database_name, username, password, ssl_enabled } = req.body;
     if (!host || !port || !database_name || !username) return res.status(400).json({ error: 'Missing required fields: host, port, database_name, username are required' });
     const dbConfig: Omit<DatabaseConfig, 'id'> = {
@@ -193,6 +204,7 @@ export const testDatabase = async (req: Request, res: Response) => {
 
 export const updateAI = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { name, enabled, apiKey, model, temperature, maxTokens } = req.body as any;
     if (enabled && !apiKey) return res.status(400).json({ error: 'API Key is required when AI is enabled' });
     if (enabled) {
@@ -289,6 +301,7 @@ export const getSchema = async (_req: Request, res: Response) => {
 
 export const switchDatabase = async (req: Request, res: Response) => {
   try {
+    requireNonSandboxMode();
     const { databaseId } = req.params;
     if (!databaseId || isNaN(parseInt(databaseId))) {
       return res.status(400).json({ error: 'Valid database ID is required' });

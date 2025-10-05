@@ -11,6 +11,7 @@ A modern full-stack application that converts natural language prompts into vali
 - **Natural Language to SQL**: Convert plain English descriptions into SQL queries
 - **Real-time Validation**: Validate SQL syntax and show immediate feedback
 - **Data Preview**: Execute queries safely with automatic LIMIT clauses and preview results
+- **Sandbox Mode**: Read-only mode that disables configuration editing for secure demonstrations
 - **Modern UI**: Beautiful, responsive interface built with shadcn/ui and Tailwind CSS
 - **Type Safety**: Full TypeScript support across frontend and backend
 - **Pattern Matching**: Intelligent query generation using configurable rules and patterns
@@ -90,6 +91,9 @@ query-builder/
    
    # Add this line to your .env file:
    # DATABASE_URL="mysql://queryuser:querypass@localhost:3306/query_builder"
+   
+   # Optional: Enable sandbox mode for read-only demonstrations
+   # SANDBOX_MODE=true
    ```
 
 4. **Start the application:**
@@ -138,6 +142,74 @@ The system recognizes these patterns:
 "Get all products"
 → SELECT * FROM products ORDER BY created_at DESC LIMIT 100
 ```
+
+## 🔒 Sandbox Mode
+
+Sandbox mode provides a secure, read-only environment perfect for demonstrations, training, or restricted access scenarios. When enabled, users can build and execute queries but cannot modify system configurations.
+
+### Features
+
+- **Read-Only Configuration**: All settings pages become view-only
+- **Disabled Editing**: Configuration forms, save buttons, and modification controls are disabled  
+- **Visual Indicators**: Clear warning banner indicates sandbox mode is active
+- **Query Building**: Full query building and execution functionality remains available
+- **Safe Demonstrations**: Perfect for public demos, training sessions, or untrusted environments
+
+### Enabling Sandbox Mode
+
+1. **Edit Environment Configuration:**
+   ```bash
+   cd packages/backend
+   # Set SANDBOX_MODE=true in your .env file
+   echo "SANDBOX_MODE=true" >> .env
+   ```
+
+2. **Restart the Backend:**
+   ```bash
+   npm run dev  # or npm start for production
+   ```
+
+3. **Verify Activation:**
+   - Navigate to the Settings page
+   - Look for the amber "Sandbox Mode Active" banner
+   - Confirm that all editing controls are disabled
+
+### What's Disabled in Sandbox Mode
+
+- ❌ Database configuration editing
+- ❌ Query rules and patterns modification  
+- ❌ AI settings configuration
+- ❌ Database switching
+- ❌ Schema updates
+- ❌ Settings import/export
+
+### What's Still Available
+
+- ✅ Natural language query building
+- ✅ SQL query generation and validation
+- ✅ Data preview and execution
+- ✅ Database schema viewing
+- ✅ Query history and audit trail
+- ✅ All read-only functionality
+
+### Testing Sandbox Mode
+
+Use the included test script to verify sandbox functionality:
+
+```bash
+# With backend running in sandbox mode
+cd query-builder
+node test-sandbox.js
+```
+
+This script tests that configuration modification endpoints properly return sandbox mode errors.
+
+### Production Use Cases
+
+- **Public Demonstrations**: Allow users to explore functionality without configuration risks
+- **Training Environments**: Provide hands-on experience while protecting system settings
+- **Shared Access**: Enable multiple users to practice query building safely
+- **Customer Previews**: Let prospects explore the application without security concerns
 
 ## 🔧 Development
 
@@ -303,3 +375,4 @@ This project is licensed under the ISC License.
 - [ ] Multi-database support (PostgreSQL, SQLite)
 - [ ] Query performance analysis
 - [ ] User authentication and query sharing
+- [x] ~~Sandbox mode for secure demonstrations~~ ✅ **Completed**

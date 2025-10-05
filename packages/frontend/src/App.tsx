@@ -76,6 +76,8 @@ function App() {
   const [schema, setSchema] = useState<BackendSchema | null>(null);
   // Audit trail for last 5 executions
   const [auditTrail, setAuditTrail] = useState<AuditEntry[]>([]);
+  // Sandbox mode status
+  const [isSandboxMode, setIsSandboxMode] = useState(false);
 
   // Function to load patterns and schema
   const loadPatternsAndSchema = async () => {
@@ -90,6 +92,10 @@ function App() {
       // Check health status
       const healthResponse = await axios.get(`${API_BASE_URL}/api/health`);
       setHealthStatus(healthResponse.data);
+      
+      // Check sandbox mode status
+      const settingsResponse = await axios.get(`${API_BASE_URL}/api/settings`);
+      setIsSandboxMode(settingsResponse.data.sandboxMode || false);
     } catch (err) {
       console.warn('Failed to load initial data:', err);
       // Set a default health status if we can't reach the backend
@@ -297,7 +303,7 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4">
-            <DatabaseSwitcher onDatabaseChange={loadPatternsAndSchema} />
+            <DatabaseSwitcher onDatabaseChange={loadPatternsAndSchema} disabled={isSandboxMode} />
             <ThemeToggle />
             {healthStatus && (
               <div className="text-right">

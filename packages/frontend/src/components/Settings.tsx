@@ -36,6 +36,8 @@ interface AISettings {
 interface Settings {
   schema: Record<string, { columns: string[]; description: string; }>;
   query_patterns: QueryPattern[];
+  sandboxMode?: boolean;
+  configEditingEnabled?: boolean;
 }
 
 const Settings: React.FC = () => {
@@ -65,6 +67,7 @@ const Settings: React.FC = () => {
   const [availableDatabases, setAvailableDatabases] = useState<any[]>([]);
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isSandboxMode, setIsSandboxMode] = useState(false);
 
   useEffect(() => {
     loadCurrentSettings();
@@ -79,6 +82,7 @@ const Settings: React.FC = () => {
       setSettingsJson(JSON.stringify(response.data.rules, null, 2));
       setDbSettingsJson(JSON.stringify(response.data.database || databaseSettings, null, 2));
       setAiSettingsJson(JSON.stringify(response.data.ai || aiSettings, null, 2));
+      setIsSandboxMode(response.data.sandboxMode || false);
       
       // Load available databases
       const dbResponse = await axios.get(`${API_BASE_URL}/api/settings/databases`);
@@ -306,6 +310,23 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
+      {/* Sandbox Mode Banner */}
+      {isSandboxMode && (
+        <Alert className="border-amber-500 bg-amber-50">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.94-.833-2.71 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <AlertTitle className="text-amber-800">Sandbox Mode Active</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Configuration editing is disabled. This application is running in read-only mode.
+              </AlertDescription>
+            </div>
+          </div>
+        </Alert>
+      )}
+
       {/* Database Selection - Always Visible at Top */}
       <Card>
         <CardHeader>
@@ -319,7 +340,7 @@ const Settings: React.FC = () => {
             <Button
               onClick={() => setShowCreateForm(!showCreateForm)}
               variant={showCreateForm ? "outline" : "default"}
-              disabled={isLoading}
+              disabled={isLoading || isSandboxMode}
               size="sm"
             >
               {showCreateForm ? 'Cancel' : 'Add New Database'}
@@ -328,7 +349,7 @@ const Settings: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Create New Database Form */}
-          {showCreateForm && (
+          {showCreateForm && !isSandboxMode && (
             <DatabaseForm
               onSubmit={handleCreateDatabase}
               onCancel={() => setShowCreateForm(false)}
@@ -357,7 +378,7 @@ const Settings: React.FC = () => {
                   }
                 }}
                 className="w-full p-2 border border-gray-300 rounded-md bg-background"
-                disabled={isLoading}
+                disabled={isLoading || isSandboxMode}
               >
                 <option value="">Select a database...</option>
                 {availableDatabases.map((db) => (
@@ -369,7 +390,7 @@ const Settings: React.FC = () => {
               </select>
               <Button 
                 onClick={handleSwitchDatabase} 
-                disabled={isLoading || !selectedDatabaseId}
+                disabled={isLoading || !selectedDatabaseId || isSandboxMode}
                 size="sm"
               >
                 {isLoading ? 'Switching...' : 'Switch Database'}
@@ -448,7 +469,7 @@ const Settings: React.FC = () => {
                 placeholder="Enter your rules configuration as JSON..."
                 className="font-mono text-sm"
                 rows={20}
-                disabled={isLoading}
+                disabled={isLoading || isSandboxMode}
               />
               <div className="text-xs text-muted-foreground">
                 The configuration should include "schema" (table definitions) and "query_patterns" (templates for natural language processing).
@@ -456,10 +477,10 @@ const Settings: React.FC = () => {
             </div>
             
             <div className="flex gap-2">
-              <Button onClick={handleSaveRules} disabled={isLoading}>
+              <Button onClick={handleSaveRules} disabled={isLoading || isSandboxMode}>
                 {isLoading ? 'Saving...' : 'Save Rules'}
               </Button>
-              <Button variant="outline" onClick={resetToDefaults} disabled={isLoading}>
+              <Button variant="outline" onClick={resetToDefaults} disabled={isLoading || isSandboxMode}>
                 Reset to Current
               </Button>
             </div>
@@ -483,7 +504,7 @@ const Settings: React.FC = () => {
       {activeTab === 'database' && (
         <div className="space-y-6">
           {/* Create New Database Form */}
-          {showCreateForm && (
+          {showCreateForm && !isSandboxMode && (
             <DatabaseForm
               onSubmit={handleCreateDatabase}
               onCancel={() => setShowCreateForm(false)}
@@ -503,7 +524,7 @@ const Settings: React.FC = () => {
                 <Button
                   onClick={() => setShowCreateForm(!showCreateForm)}
                   variant={showCreateForm ? "outline" : "default"}
-                  disabled={isLoading}
+                  disabled={isLoading || isSandboxMode}
                 >
                   {showCreateForm ? 'Cancel' : 'Add New Database'}
                 </Button>
@@ -522,7 +543,7 @@ const Settings: React.FC = () => {
                 placeholder="Enter your database configuration as JSON..."
                 className="font-mono text-sm"
                 rows={12}
-                disabled={isLoading}
+                disabled={isLoading || isSandboxMode}
               />
               <div className="text-xs text-muted-foreground">
                 Required fields: host, port, database_name, username. Optional: password, ssl_enabled
@@ -530,13 +551,13 @@ const Settings: React.FC = () => {
             </div>
             
             <div className="flex gap-2">
-              <Button onClick={handleSaveDatabase} disabled={isLoading}>
+              <Button onClick={handleSaveDatabase} disabled={isLoading || isSandboxMode}>
                 {isLoading ? 'Saving...' : 'Save Database Settings'}
               </Button>
-              <Button variant="outline" onClick={handleTestConnection} disabled={isLoading}>
+              <Button variant="outline" onClick={handleTestConnection} disabled={isLoading || isSandboxMode}>
                 {isLoading ? 'Testing...' : 'Test Connection'}
               </Button>
-              <Button variant="outline" onClick={resetToDefaults} disabled={isLoading}>
+              <Button variant="outline" onClick={resetToDefaults} disabled={isLoading || isSandboxMode}>
                 Reset to Current
               </Button>
             </div>
@@ -584,7 +605,7 @@ const Settings: React.FC = () => {
                 placeholder="Enter your AI configuration as JSON..."
                 className="font-mono text-sm"
                 rows={15}
-                disabled={isLoading}
+                disabled={isLoading || isSandboxMode}
               />
               <div className="text-xs text-muted-foreground">
                 Configure AI model, temperature, tokens, and API key settings
@@ -592,13 +613,13 @@ const Settings: React.FC = () => {
             </div>
             
             <div className="flex gap-2">
-              <Button onClick={handleSaveAI} disabled={isLoading}>
+              <Button onClick={handleSaveAI} disabled={isLoading || isSandboxMode}>
                 {isLoading ? 'Saving...' : 'Save AI Settings'}
               </Button>
-              <Button variant="outline" onClick={handleTestAI} disabled={isLoading}>
+              <Button variant="outline" onClick={handleTestAI} disabled={isLoading || isSandboxMode}>
                 {isLoading ? 'Testing...' : 'Test AI Connection'}
               </Button>
-              <Button variant="outline" onClick={resetToDefaults} disabled={isLoading}>
+              <Button variant="outline" onClick={resetToDefaults} disabled={isLoading || isSandboxMode}>
                 Reset to Current
               </Button>
             </div>

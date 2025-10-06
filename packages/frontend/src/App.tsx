@@ -612,12 +612,12 @@ function App() {
                   <div className="space-y-2 max-h-96 overflow-auto bg-black rounded-md p-3 scrollbar-hide">
                     {availablePatterns.slice(0, 5).map((pattern, index) => (
                       <div key={index} className="space-y-1">
-                        <div className="text-sm font-medium">{pattern.description}</div>
+                        <div className="text-sm font-medium text-purple-400">{pattern.description}</div>
                         {pattern.examples?.slice(0, 2).map((example, exIndex) => (
                           <button
                             key={exIndex}
                             onClick={() => handleUseExample(example)}
-                            className="block w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted p-2 rounded border border-transparent hover:border-border transition-colors"
+                            className="block w-full text-left text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 p-2 rounded border border-transparent hover:border-purple-500 transition-colors"
                           >
                             "{example}"
                           </button>
@@ -647,9 +647,9 @@ function App() {
                 {schema ? (
                   <div className="space-y-3 max-h-80 overflow-auto pr-1 bg-black rounded-md p-3 scrollbar-hide">
                     {Object.entries(schema).map(([table, info]) => (
-                      <div key={table}>
-                        <div className="font-medium text-sm">{table}</div>
-                        <div className="text-xs text-muted-foreground truncate" title={info.columns.join(', ')}>
+                      <div key={table} className="hover:bg-purple-900/20 p-2 rounded transition-colors cursor-pointer group">
+                        <div className="font-medium text-sm text-purple-400 group-hover:text-purple-300">{table}</div>
+                        <div className="text-xs text-purple-400/70 group-hover:text-purple-300/80 truncate" title={info.columns.join(', ')}>
                           {info.columns.join(', ')}
                         </div>
                       </div>

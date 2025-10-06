@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import openaiService from '../services/openaiService';
+import aiService from '../services/aiService';
 import { getCachedRules, loadRulesFromFile, QueryPattern } from '../services/rulesService';
 import { sanitizeInput } from '../utils/validators';
 import { databaseService } from '../services/databaseSystemService';
@@ -49,10 +49,10 @@ export const generateQuery = async (req: Request, res: Response) => {
     // Get dynamic schema from the active database
     const dynamicSchema = await databaseService.getDatabaseSchema();
 
-    // Try OpenAI first if enabled and requested
-    if (useAI && openaiService.enabled) {
+    // Try AI service first if enabled and requested
+    if (useAI && aiService.enabled) {
       try {
-        const aiResult = await openaiService.generateQuery({ prompt, schema: dynamicSchema });
+        const aiResult = await aiService.generateQuery({ prompt, schema: dynamicSchema });
         if (aiResult) {
           generatedSql = aiResult.sql;
           confidence = aiResult.confidence;
@@ -71,7 +71,7 @@ export const generateQuery = async (req: Request, res: Response) => {
           return res.json({
             sql: aiResult.sql,
             confidence: aiResult.confidence,
-            source: 'openai',
+            source: aiService.getProvider(),
             reasoning: aiResult.reasoning,
             tables_used: aiResult.tables_used,
             matchedPattern: {
@@ -129,7 +129,7 @@ export const generateQuery = async (req: Request, res: Response) => {
         availablePatterns: rulesFromFile.query_patterns
           .map((p) => ({ description: p.description, keywords: p.keywords.slice(0, 3) }))
           .slice(0, 3),
-        aiEnabled: openaiService.enabled
+        aiEnabled: aiService.enabled
       });
     }
 
@@ -157,7 +157,7 @@ export const generateQuery = async (req: Request, res: Response) => {
           template: bestMatch.pattern.template,
           keywords: bestMatch.pattern.keywords,
           suggestion: 'Try including specific values like state names, categories, or IDs in your query.',
-          aiEnabled: openaiService.enabled
+          aiEnabled: aiService.enabled
         });
       }
       let valueIndex = 0;
@@ -188,7 +188,7 @@ export const generateQuery = async (req: Request, res: Response) => {
         keywords: bestMatch.pattern.keywords
       },
       extractedValues: bestMatch.extractedValues,
-      aiEnabled: openaiService.enabled
+      aiEnabled: aiService.enabled
     });
   } catch (error: any) {
     // Log internal server error

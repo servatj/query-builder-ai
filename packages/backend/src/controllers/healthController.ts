@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import openaiService from '../services/openaiService';
+import aiService from '../services/aiService';
 import { getPool } from '../services/pools';
 import { databaseService } from '../services/databaseSystemService';
 
@@ -9,8 +9,13 @@ export const getHealth = async (_req: Request, res: Response) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       database: 'disconnected',
-      openai: openaiService.enabled ? 'enabled' : 'disabled',
-      services: { database: 'disconnected', openai: openaiService.enabled ? 'enabled' : 'disabled' }
+      ai_provider: aiService.getProvider(),
+      ai_enabled: aiService.enabled ? 'enabled' : 'disabled',
+      services: { 
+        database: 'disconnected', 
+        ai: aiService.enabled ? 'enabled' : 'disabled',
+        ai_provider: aiService.getProvider()
+      }
     };
 
     // Get current database info

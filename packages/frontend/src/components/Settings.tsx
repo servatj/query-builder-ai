@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DatabaseForm from '@/components/DatabaseForm';
+import AIProviderSelector from '@/components/AIProviderSelector';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -68,6 +69,7 @@ const Settings: React.FC = () => {
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSandboxMode, setIsSandboxMode] = useState(false);
+  const [currentAIProvider, setCurrentAIProvider] = useState<'anthropic' | 'openai'>('anthropic');
 
   useEffect(() => {
     loadCurrentSettings();
@@ -92,6 +94,16 @@ const Settings: React.FC = () => {
       const defaultDb = (dbResponse.data.data || []).find((db: any) => db.is_default);
       if (defaultDb) {
         setSelectedDatabaseId(defaultDb.id);
+      }
+
+      // Load current AI provider
+      try {
+        const aiConfigResponse = await axios.get(`${API_BASE_URL}/api/settings/ai/config`);
+        if (aiConfigResponse.data.success) {
+          setCurrentAIProvider(aiConfigResponse.data.data.provider || 'anthropic');
+        }
+      } catch (aiErr) {
+        console.warn('Could not load AI provider config:', aiErr);
       }
     } catch (err: any) {
       console.warn('Could not load current settings:', err);
@@ -586,38 +598,45 @@ const Settings: React.FC = () => {
 
       {/* AI Settings Tab */}
       {activeTab === 'ai' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Model Configuration</CardTitle>
-            <CardDescription>
-              Configure OpenAI settings for AI-powered query generation
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="ai-settings-json" className="font-medium">
-                AI Settings (JSON)
-              </label>
-              <Textarea
-                id="ai-settings-json"
-                value={aiSettingsJson}
-                onChange={(e) => setAiSettingsJson(e.target.value)}
-                placeholder="Enter your AI configuration as JSON..."
-                className="font-mono text-sm"
-                rows={15}
-                disabled={isLoading || isSandboxMode}
-              />
-              <div className="text-xs text-muted-foreground">
-                Configure AI model, temperature, tokens, and API key settings
+        <>
+          {/* AI Provider Selector */}
+          <AIProviderSelector onProviderChange={(provider) => {
+            setCurrentAIProvider(provider);
+            loadCurrentSettings();
+          }} />
+          
+          {/* AI Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Model Configuration</CardTitle>
+              <CardDescription>
+                Configure API keys and model settings for the selected AI provider
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">\n              <div className="space-y-2">
+                <label htmlFor="ai-settings-json" className="font-medium">
+                  AI Settings (JSON)
+                </label>
+                <Textarea
+                  id="ai-settings-json"
+                  value={aiSettingsJson}
+                  onChange={(e) => setAiSettingsJson(e.target.value)}
+                  placeholder="Enter your AI configuration as JSON..."
+                  className="font-mono text-sm"
+                  rows={15}
+                  disabled={isLoading || isSandboxMode}
+                />
+                <div className="text-xs text-muted-foreground">
+                  Configure AI model, temperature, tokens, and API key settings
+                </div>
               </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button onClick={handleSaveAI} disabled={isLoading || isSandboxMode}>
-                {isLoading ? 'Saving...' : 'Save AI Settings'}
-              </Button>
-              <Button variant="outline" onClick={handleTestAI} disabled={isLoading || isSandboxMode}>
-                {isLoading ? 'Testing...' : 'Test AI Connection'}
+              
+              <div className="flex gap-2">
+                <Button onClick={handleSaveAI} disabled={isLoading || isSandboxMode}>
+                  {isLoading ? 'Saving...' : 'Save AI Settings'}
+                </Button>
+                <Button variant="outline" onClick={handleTestAI} disabled={isLoading || isSandboxMode}>
+                  {isLoading ? 'Testing...' : 'Test AI Connection'}
               </Button>
               <Button variant="outline" onClick={resetToDefaults} disabled={isLoading || isSandboxMode}>
                 Reset to Current
@@ -629,7 +648,13 @@ const Settings: React.FC = () => {
               <div className="p-4 bg-muted rounded-lg">
                 <h3 className="font-medium mb-2">Configuration Template</h3>
                 <pre className="text-xs text-muted-foreground overflow-x-auto">
-{`{
+{currentAIProvider === 'anthropic' ? `{
+  "enabled": true,
+  "apiKey": "sk-ant-your-anthropic-api-key",
+  "model": "claude-3-5-haiku-20241022",
+  "temperature": 0.3,
+  "maxTokens": 1000
+}` : `{
   "enabled": true,
   "apiKey": "sk-your-openai-api-key",
   "model": "gpt-4-turbo-preview",
@@ -642,11 +667,23 @@ const Settings: React.FC = () => {
               <div className="p-4 bg-muted rounded-lg">
                 <h3 className="font-medium mb-2">Available Models</h3>
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <div><code>gpt-4-turbo-preview</code> - Latest GPT-4 Turbo (Recommended)</div>
-                  <div><code>gpt-4</code> - Standard GPT-4</div>
-                  <div><code>gpt-3.5-turbo</code> - Faster, lower cost</div>
-                  <div><code>gpt-4o</code> - GPT-4 Omni</div>
-                  <div><code>gpt-4o-mini</code> - Smaller GPT-4 Omni</div>
+                  {currentAIProvider === 'anthropic' ? (
+                    <>
+                      <div><code>claude-3-5-haiku-20241022</code> - Latest, fast & affordable ⭐ (Recommended)</div>
+                      <div><code>claude-3-5-sonnet-20241022</code> - Latest Sonnet (Deprecated)</div>
+                      <div><code>claude-3-opus-20240229</code> - Most capable</div>
+                      <div><code>claude-3-sonnet-20240229</code> - Balanced</div>
+                      <div><code>claude-3-haiku-20240307</code> - Legacy Haiku</div>
+                    </>
+                  ) : (
+                    <>
+                      <div><code>gpt-4-turbo-preview</code> - Latest GPT-4 Turbo (Recommended)</div>
+                      <div><code>gpt-4</code> - Standard GPT-4</div>
+                      <div><code>gpt-3.5-turbo</code> - Faster, lower cost</div>
+                      <div><code>gpt-4o</code> - GPT-4 Omni</div>
+                      <div><code>gpt-4o-mini</code> - Smaller GPT-4 Omni</div>
+                    </>
+                  )}
                 </div>
                 
                 <h4 className="font-medium mt-3 mb-1">Parameters</h4>
@@ -658,6 +695,7 @@ const Settings: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
     </div>
   );

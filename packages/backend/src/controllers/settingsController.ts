@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import openaiService, { AIConfig } from '../services/openaiService';
+import aiService, { AIServiceConfig } from '../services/aiService';
 import databaseService, { DatabaseConfig, AISettingsDB } from '../services/databaseSystemService';
 import { getCachedRules, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase, loadRulesFromDatabase, loadSchemaFromDatabase, clearCachedRules } from '../services/rulesService';
 import { recreateDestinationPool } from '../index';
@@ -214,14 +214,7 @@ export const updateAI = async (req: Request, res: Response) => {
     }
     const aiSettings: Omit<AISettingsDB, 'id'> = { name: name || 'Custom Configuration', enabled, apiKey, model, temperature, maxTokens, is_active: true, is_default: true };
     await databaseService.saveAISettings(aiSettings);
-    if (enabled && apiKey) {
-      try {
-        const aiConfig: AIConfig = { enabled, apiKey, model, temperature, maxTokens };
-        openaiService.updateConfig(aiConfig);
-      } catch {
-        // ignore update failures
-      }
-    }
+    // Note: Legacy updateAI endpoint - use updateAIConfig for unified AI service
     return res.json({ success: true, message: 'AI configuration updated successfully' });
   } catch (error) {
     console.error('Failed to update AI config:', error);
@@ -332,5 +325,98 @@ export const switchDatabase = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Failed to switch database:', error);
     return res.status(500).json({ error: 'Failed to switch default database' });
+  }
+};
+
+// AI Provider Management
+export const getAIConfig = async (_req: Request, res: Response) => {
+  try {
+    const config = aiService.getConfig();
+    return res.json({ 
+      success: true, 
+      data: {
+        ...config,
+        available_models: {
+          openai: aiService.getAvailableModels('openai'),
+          anthropic: aiService.getAvailableModels('anthropic')
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Failed to get AI config:', error);
+    return res.status(500).json({ error: 'Failed to fetch AI configuration' });
+  }
+};
+
+export const updateAIProvider = async (req: Request, res: Response) => {
+  try {
+    requireNonSandboxMode();
+    const { provider } = req.body as { provider: 'openai' | 'anthropic' };
+    
+    if (!provider || (provider !== 'openai' && provider !== 'anthropic')) {
+      return res.status(400).json({ error: 'Valid provider is required (openai or anthropic)' });
+    }
+    
+    aiService.setProvider(provider);
+    
+    return res.json({ 
+      success: true, 
+      message: `AI provider switched to ${provider}`,
+      provider: aiService.getProvider(),
+      enabled: aiService.enabled
+    });
+  } catch (error) {
+    console.error('Failed to update AI provider:', error);
+    return res.status(500).json({ error: 'Failed to update AI provider' });
+  }
+};
+
+export const updateAIConfig = async (req: Request, res: Response) => {
+  try {
+    requireNonSandboxMode();
+    const config = req.body as Partial<AIServiceConfig>;
+    
+    if (!config) {
+      return res.status(400).json({ error: 'Configuration is required' });
+    }
+    
+    aiService.updateConfig(config as AIServiceConfig);
+    
+    return res.json({ 
+      success: true, 
+      message: 'AI configuration updated successfully',
+      provider: aiService.getProvider(),
+      enabled: aiService.enabled
+    });
+  } catch (error) {
+    console.error('Failed to update AI config:', error);
+    return res.status(500).json({ error: 'Failed to update AI configuration' });
+  }
+};
+
+export const testAIConnection = async (_req: Request, res: Response) => {
+  try {
+    const success = await aiService.testConnection();
+    
+    if (success) {
+      return res.json({ 
+        success: true, 
+        message: `${aiService.getProvider()} connection successful`,
+        provider: aiService.getProvider()
+      });
+    } else {
+      return res.json({ 
+        success: false, 
+        error: `${aiService.getProvider()} connection failed`,
+        provider: aiService.getProvider()
+      });
+    }
+  } catch (error: any) {
+    console.error('AI connection test failed:', error);
+    return res.json({ 
+      success: false, 
+      error: `Connection test failed: ${error.message}`,
+      provider: aiService.getProvider()
+    });
   }
 };

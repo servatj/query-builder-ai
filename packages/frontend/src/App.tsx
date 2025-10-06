@@ -150,7 +150,7 @@ function App() {
     setExecutionInfo(null);
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/generate-query`, { prompt: naturalLanguageQuery });
+      const response = await axios.post(`${API_BASE_URL}/api/generate-query`, { prompt: naturalLanguageQuery, useAI: true });
       
       // Auto-format the generated SQL
       let formattedSql = response.data.sql;

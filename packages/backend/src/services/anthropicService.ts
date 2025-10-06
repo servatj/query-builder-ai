@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,7 +15,7 @@ interface QueryGenerationResponse {
   tables_used: string[];
 }
 
-interface AIConfig {
+interface AnthropicConfig {
   enabled: boolean;
   apiKey: string;
   model: string;
@@ -23,58 +23,58 @@ interface AIConfig {
   maxTokens: number;
 }
 
-class OpenAIService {
-  private openai: OpenAI | null = null;
+class AnthropicService {
+  private anthropic: Anthropic | null = null;
   private isEnabled = false;
-  private config: AIConfig = {
+  private config: AnthropicConfig = {
     enabled: false,
     apiKey: '',
-    model: 'gpt-4-turbo-preview',
+    model: 'claude-3-5-haiku-20241022',
     temperature: 0.3,
     maxTokens: 1000
   };
 
   constructor() {
     // Try to initialize with environment variable first
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     
     if (apiKey && apiKey.length > 0) {
       this.config.enabled = true;
       this.config.apiKey = apiKey;
-      this.initializeOpenAI();
+      this.initializeAnthropic();
     } else {
-      console.log('ℹ️  OpenAI API key not found. AI-enhanced query generation disabled.');
+      console.log('ℹ️  Anthropic API key not found. AI-enhanced query generation disabled.');
       this.isEnabled = false;
     }
   }
 
-  private initializeOpenAI() {
+  private initializeAnthropic() {
     try {
-      this.openai = new OpenAI({ apiKey: this.config.apiKey });
+      this.anthropic = new Anthropic({ apiKey: this.config.apiKey });
       this.isEnabled = this.config.enabled;
-      console.log('✅ OpenAI service initialized');
+      console.log('✅ Anthropic service initialized');
     } catch (error) {
-      console.warn('⚠️  Failed to initialize OpenAI service:', error);
+      console.warn('⚠️  Failed to initialize Anthropic service:', error);
       this.isEnabled = false;
     }
   }
 
   public get enabled(): boolean {
-    return this.isEnabled && this.openai !== null;
+    return this.isEnabled && this.anthropic !== null;
   }
 
-  public updateConfig(newConfig: AIConfig): void {
+  public updateConfig(newConfig: AnthropicConfig): void {
     this.config = { ...newConfig };
     
     if (this.config.enabled && this.config.apiKey) {
-      this.initializeOpenAI();
+      this.initializeAnthropic();
     } else {
       this.isEnabled = false;
-      this.openai = null;
+      this.anthropic = null;
     }
   }
 
-  public getConfig(): AIConfig {
+  public getConfig(): AnthropicConfig {
     return { ...this.config };
   }
 
@@ -83,6 +83,7 @@ class OpenAIService {
     let cleaned = jsonStr.replace(/```json\s*|```\s*/g, '').trim();
     
     // Replace common problematic control characters in string values
+    // This regex finds string values and cleans them
     try {
       // First try to parse as-is
       JSON.parse(cleaned);
@@ -102,7 +103,7 @@ class OpenAIService {
   }
 
   public async generateQuery(request: QueryGenerationRequest): Promise<QueryGenerationResponse | null> {
-    if (!this.enabled || !this.openai) {
+    if (!this.enabled || !this.anthropic) {
       return null;
     }
 
@@ -110,28 +111,27 @@ class OpenAIService {
       const systemPrompt = this.buildSystemPrompt(request.schema);
       const userPrompt = this.buildUserPrompt(request.prompt);
 
-      const completion = await this.openai.chat.completions.create({
+      const message = await this.anthropic.messages.create({
         model: this.config.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: this.config.temperature,
         max_tokens: this.config.maxTokens,
-        response_format: { type: 'json_object' }
+        temperature: this.config.temperature,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: userPrompt }
+        ]
       });
 
-      const response = completion.choices[0]?.message?.content;
-      if (!response) {
-        throw new Error('No response from OpenAI');
+      const response = message.content[0];
+      if (response.type !== 'text') {
+        throw new Error('Unexpected response type from Anthropic');
       }
 
-      const sanitizedResponse = this.sanitizeJsonString(response);
-      const parsed = JSON.parse(sanitizedResponse) as QueryGenerationResponse;
+      const sanitizedText = this.sanitizeJsonString(response.text);
+      const parsed = JSON.parse(sanitizedText) as QueryGenerationResponse;
       
       // Validate the response has required fields
       if (!parsed.sql || typeof parsed.confidence !== 'number') {
-        throw new Error('Invalid response format from OpenAI');
+        throw new Error('Invalid response format from Anthropic');
       }
 
       // Ensure confidence is between 0 and 1
@@ -139,7 +139,7 @@ class OpenAIService {
 
       return parsed;
     } catch (error) {
-      console.error('OpenAI query generation error:', error);
+      console.error('Anthropic query generation error:', error);
       return null;
     }
   }
@@ -169,8 +169,8 @@ Return a valid JSON object with:
 - reasoning: Brief explanation of your approach (string) - use plain text, no newlines
 - tables_used: Array of table names used in the query (array)
 
-IMPORTANT: Ensure all strings are properly escaped and contain no literal newlines or control characters.
-The response must be valid, parseable JSON.
+IMPORTANT: Return ONLY valid JSON. Do not include markdown formatting, code blocks, or explanatory text.
+Ensure all strings are properly escaped and contain no literal newlines or control characters.
 
 Example:
 {
@@ -190,25 +190,25 @@ Please provide the response as a JSON object with the required fields.`;
   }
 
   public async testConnection(): Promise<boolean> {
-    if (!this.enabled || !this.openai) {
+    if (!this.enabled || !this.anthropic) {
       return false;
     }
 
     try {
-      await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: 'Test connection' }],
-        max_tokens: 5
+      await this.anthropic.messages.create({
+        model: this.config.model,
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'Test connection' }]
       });
       return true;
     } catch (error) {
-      console.error('OpenAI connection test failed:', error);
+      console.error('Anthropic connection test failed:', error);
       return false;
     }
   }
 }
 
 // Export a singleton instance
-export const openaiService = new OpenAIService();
-export default openaiService;
-export type { AIConfig };
+export const anthropicService = new AnthropicService();
+export default anthropicService;
+export type { AnthropicConfig };

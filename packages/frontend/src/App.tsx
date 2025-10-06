@@ -290,33 +290,40 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with navigation and health status */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-6">
-            <div>
-              <h1 className="text-3xl font-bold">AI-Powered Query Builder</h1>
-              <p className="text-muted-foreground">Convert natural language to SQL queries with real-time validation</p>
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* Header with distinct background and full-width separator */}
+      <div className="bg-muted/30 border-b border-border">
+        <div className="max-w-6xl mx-auto p-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-6">
+              <img src="/logo.png" alt="Logo" className="h-20 w-20 object-contain" />
+              <div>
+                <h1 className="text-3xl font-bold">AI-Powered Query Builder</h1>
+                <p className="text-muted-foreground">Convert natural language to SQL queries with real-time validation</p>
+              </div>
+              
             </div>
             
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <DatabaseSwitcher onDatabaseChange={loadPatternsAndSchema} disabled={isSandboxMode} />
-            <ThemeToggle />
-            {healthStatus && (
-              <div className="text-right">
-                <div className={`text-sm font-medium ${getHealthStatusColor()}`}>
-                  Backend: {healthStatus.status}
+            <div className="flex items-center gap-4">
+              <DatabaseSwitcher onDatabaseChange={loadPatternsAndSchema} disabled={isSandboxMode} />
+              <ThemeToggle />
+              {healthStatus && (
+                <div className="text-right">
+                  <div className={`text-sm font-medium ${getHealthStatusColor()}`}>
+                    Backend: {healthStatus.status}
+                  </div>
+                  <div className={`text-xs ${healthStatus.database === 'connected' ? 'text-green-500' : 'text-yellow-500'}`}>
+                    Database: {healthStatus.database}
+                  </div>
                 </div>
-                <div className={`text-xs ${healthStatus.database === 'connected' ? 'text-green-500' : 'text-yellow-500'}`}>
-                  Database: {healthStatus.database}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
+      </div>
+      
+      <div className="flex-1 flex items-center">
+        <div className="max-w-6xl mx-auto p-4 w-full space-y-6">
 
         {/* Navigation below logo */}
         <div className="flex justify-start">
@@ -602,7 +609,7 @@ function App() {
                   <CardDescription>Click any example to try it</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-96 overflow-auto bg-black rounded-md p-3 scrollbar-hide">
                     {availablePatterns.slice(0, 5).map((pattern, index) => (
                       <div key={index} className="space-y-1">
                         <div className="text-sm font-medium">{pattern.description}</div>
@@ -638,7 +645,7 @@ function App() {
               <CardContent>
                 {/* Render dynamic schema from backend if available */}
                 {schema ? (
-                  <div className="space-y-3 max-h-80 overflow-auto pr-1">
+                  <div className="space-y-3 max-h-80 overflow-auto pr-1 bg-black rounded-md p-3 scrollbar-hide">
                     {Object.entries(schema).map(([table, info]) => (
                       <div key={table}>
                         <div className="font-medium text-sm">{table}</div>
@@ -708,6 +715,7 @@ function App() {
           </div>
         </div>
         )}
+        </div>
       </div>
     </div>
   );

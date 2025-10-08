@@ -1,0 +1,21 @@
+# Development Frontend Dockerfile with hot-reload
+FROM node:24-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY packages/frontend/package*.json ./packages/frontend/
+
+# Install all dependencies (including dev)
+RUN npm ci --workspace=packages/frontend
+
+# Copy source code (will be overridden by volume mount)
+COPY packages/frontend ./packages/frontend
+
+WORKDIR /app/packages/frontend
+
+EXPOSE 5173
+
+# Run Vite dev server with host flag for Docker
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

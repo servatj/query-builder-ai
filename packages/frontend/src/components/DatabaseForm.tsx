@@ -207,7 +207,7 @@ const DatabaseForm: React.FC<DatabaseFormProps> = ({
               value={formData.username}
               onChange={handleInputChange('username')}
               className="w-full p-2 border border-gray-300 rounded-md bg-background"
-              placeholder="your_username"
+              placeholder="servatj"
               disabled={isLoading}
             />
             {errors.username && (

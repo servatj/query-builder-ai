@@ -1,0 +1,104 @@
+services:
+  # MySQL Database for Query Builder settings
+  mysql:
+    image: mysql:9.4
+    container_name: query-builder-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: queryuser
+      MYSQL_PASSWORD: querypass
+      MYSQL_DATABASE: query_builder
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - query-builder-network
+
+  # Sakila Demo Database (for querying)
+  mysql-sakila:
+    image: servatj/sakila-mysql:latest
+    container_name: query-builder-sakila
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: queryuser
+      MYSQL_PASSWORD: querypass
+      MYSQL_DATABASE: sakila
+    ports:
+      - "3310:3306"
+    volumes:
+      - sakila_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - query-builder-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: query-builder-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: mysql://queryuser:querypass@mysql:3306/query_builder
+      SETTINGS_DATABASE_URL: mysql://queryuser:querypass@mysql:3306/query_builder
+      SANDBOX_MODE: ${SANDBOX_MODE:-false}
+      # Add your API keys here or in .env file
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mysql-sakila:
+        condition: service_healthy
+    networks:
+      - query-builder-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: query-builder-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - query-builder-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  mysql_data:
+    driver: local
+  sakila_data:
+    driver: local
+
+networks:
+  query-builder-network:
+    driver: bridge

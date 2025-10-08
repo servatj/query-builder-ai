@@ -21,7 +21,7 @@ const SqlEditor: React.FC<SqlEditorProps> = ({
   onCopy
 }) => {
   const editorRef = useRef<unknown>(null);
-  const { theme } = useTheme();
+  const { theme: _theme } = useTheme();
 
   const handleEditorDidMount = (editor: unknown, monaco: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     editorRef.current = editor;

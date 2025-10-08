@@ -1,0 +1,66 @@
+# Node modules
+node_modules/
+packages/*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+packages/*/dist/
+packages/*/build/
+coverage/
+packages/*/coverage/
+
+# Environment files (use .env.docker instead)
+.env
+.env.local
+.env.*.local
+packages/*/.env
+packages/*/.env.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+landing/
+*.pdf
+
+# Test files
+*.test.ts
+*.test.tsx
+*.test.js
+*.spec.ts
+*.spec.tsx
+*.spec.js
+**/__tests__/
+**/__mocks__/
+vitest.config.ts
+vitest.setup.ts
+
+# Logs
+logs/
+*.log
+packages/*/logs/
+packages/*/*.log
+packages/backend/combined.log
+packages/backend/error.log
+
+# Misc
+.cursor/
+.claude/
+test-sandbox.js
+docker-compose.infra.yml

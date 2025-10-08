@@ -1,0 +1,104 @@
+version: '3.8'
+
+# Development Docker Compose - Hot reload enabled
+services:
+  # MySQL Database for Query Builder settings
+  mysql:
+    image: mysql:9.4
+    container_name: query-builder-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: queryuser
+      MYSQL_PASSWORD: querypass
+      MYSQL_DATABASE: query_builder
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - query-builder-network
+
+  # Sakila Demo Database
+  mysql-sakila:
+    image: servatj/sakila-mysql:latest
+    container_name: query-builder-sakila-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: queryuser
+      MYSQL_PASSWORD: querypass
+      MYSQL_DATABASE: sakila
+    ports:
+      - "3310:3306"
+    volumes:
+      - sakila_data_dev:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - query-builder-network
+
+  # Backend with hot reload
+  backend:
+    image: node:24-alpine
+    container_name: query-builder-backend-dev
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install && cd packages/backend && npm run dev"
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: mysql://queryuser:querypass@mysql:3306/query_builder
+      SANDBOX_MODE: ${SANDBOX_MODE:-false}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/packages/backend/node_modules
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mysql-sakila:
+        condition: service_healthy
+    networks:
+      - query-builder-network
+
+  # Frontend with hot reload
+  frontend:
+    image: node:24-alpine
+    container_name: query-builder-frontend-dev
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install && cd packages/frontend && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/packages/frontend/node_modules
+    depends_on:
+      - backend
+    networks:
+      - query-builder-network
+
+volumes:
+  mysql_data_dev:
+    driver: local
+  sakila_data_dev:
+    driver: local
+
+networks:
+  query-builder-network:
+    driver: bridge

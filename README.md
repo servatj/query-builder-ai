@@ -1,7 +1,4 @@
-<img width="393" height="102" alt="image" src="https://github.com/user-attachments/assets/70efa477-5086-4472-a528-dafb649253bb" />
-
-
-<img width="1569" height="967" alt="image" src="https://github.com/user-attachments/assets/02358333-6c74-49db-a1b0-bcb07368b9d1" />
+<img width="1280" height="875" alt="image" src="https://github.com/user-attachments/assets/3584ec79-2044-4557-9fb1-50c3b55bf9c0" />
 
 
 A modern full-stack application that converts natural language prompts into validated SQL queries. Built with React, TypeScript, Tailwind CSS, shadcn/ui, and Node.js in a monorepo structure.
@@ -57,13 +54,96 @@ query-builder/
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Docker (Recommended) 🐳
 
+The easiest way to get started! Everything runs in containers - no need to install Node.js or MySQL locally.
+
+#### Prerequisites
+- Docker Desktop installed ([Download here](https://www.docker.com/products/docker-desktop))
+- At least one AI API key (Anthropic or OpenAI)
+
+#### Interactive Setup (Recommended)
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd query-builder
+
+# 2. Run the interactive startup script
+./docker-start.sh
+```
+
+**The script will:**
+- ✅ Check if Docker is running
+- ✅ Create `.env` file if needed
+- ✅ Prompt you to add your API key(s)
+- ✅ Let you choose your mode:
+  - **Option 1**: Production (Port 80) - Optimized build
+  - **Option 2**: Development (Port 5173) - Hot reload enabled
+  - **Option 3**: Sandbox (Port 80) - Pre-configured with Sakila demo database
+- ✅ Build and start all services
+- ✅ Show you the URLs to access
+
+#### Quick Commands
+
+```bash
+# Start in Production mode
+./docker-start.sh
+# Select option 1
+
+# Start in Sandbox mode (with Sakila demo data)
+./docker-start.sh
+# Select option 3
+
+# Stop all services
+docker-compose -f docker-compose.sandbox.yml down  # For sandbox
+docker-compose down  # For production
+```
+
+#### Access URLs
+
+| Mode | Frontend | Backend | Settings DB | Sakila Demo |
+|------|----------|---------|-------------|-------------|
+| **Production** | http://localhost | http://localhost:3001 | localhost:3306 | localhost:3310 |
+| **Development** | http://localhost:5173 | http://localhost:3001 | localhost:3306 | - |
+| **Sandbox** | http://localhost | http://localhost:3001 | localhost:3306 | localhost:3310 |
+
+#### 🎮 Try the Sandbox Mode
+
+Perfect for demos and testing! Includes:
+- ✅ Pre-configured Sakila demo database (movie rental data)
+- ✅ Ready-to-use example queries
+- ✅ Full schema with films, actors, categories, etc.
+- ✅ No configuration needed
+
+```bash
+./docker-start.sh
+# Select option 3 for Sandbox
+```
+
+Then try queries like:
+- "Show all films"
+- "Action films"
+- "Films rated PG"
+- "Comedy movies"
+
+📖 **For detailed Docker instructions, troubleshooting, and advanced configuration, see:**
+- [DOCKER.md](./DOCKER.md) - Complete Docker documentation
+- [SANDBOX.md](./SANDBOX.md) - Sandbox mode guide
+- [QUICK-START.md](./QUICK-START.md) - Quick reference
+
+---
+
+### Option 2: Local Development (Manual Setup)
+
+For development without Docker:
+
+#### Prerequisites
 - Node.js (v18 or higher)
 - npm (v8 or higher)
 - MySQL database (local or remote)
 
-### Installation
+#### Installation
 
 1. **Clone and install:**
    ```bash
@@ -113,6 +193,28 @@ query-builder/
 > **💡 For detailed setup instructions, troubleshooting, and advanced configuration, see our [Getting Started Guide](https://joseps-personal-organization.gitbook.io/query-builder-ai/getting-started/installation-and-setup).**
 
 ## 📖 Usage Guide
+
+### 🏠 Landing Page
+
+A professional landing page is included in the `landing/` directory.
+
+**Start the landing page:**
+```bash
+cd landing
+python3 -m http.server 8080
+```
+
+Then open: **http://localhost:8080**
+
+The landing page includes:
+- Beautiful hero section with call-to-action
+- Feature highlights
+- Links to sandbox, documentation, and GitHub
+- Fully responsive design
+
+**Customize:** Edit `landing/index.html` to update links and content.
+
+---
 
 ### Basic Workflow
 
@@ -361,18 +463,107 @@ npm run build
 5. Push to the branch: `git push origin feature/amazing-feature`
 6. Open a Pull Request
 
-## 📝 License
+## � Security
+
+### API Keys Protection
+
+- ✅ All `.env` files are properly excluded via `.gitignore`
+- ✅ API keys are never committed to the repository
+- ✅ Example files (`.env.example`) contain only placeholders
+- ⚠️ Always verify `.env` files are not staged before pushing: `git status`
+
+### Sandbox Mode Security
+
+Sandbox mode provides a secure, read-only environment for:
+- Public demonstrations
+- Training sessions
+- Untrusted environments
+- Customer previews
+
+All configuration editing is disabled while query building remains fully functional.
+
+## 🐳 Docker Architecture
+
+The application uses a multi-container Docker setup:
+
+### Containers
+
+1. **MySQL (Settings)** - Port 3306
+   - Stores application configuration
+   - Database settings, AI configuration, query logs
+   
+2. **MySQL-Sakila (Demo)** - Port 3310
+   - Pre-loaded Sakila demo database
+   - Movie rental data for testing and demos
+   
+3. **Backend API** - Port 3001
+   - Node.js + Express + TypeScript
+   - Connects to both MySQL containers
+   - AI query generation (Anthropic/OpenAI)
+   
+4. **Frontend** - Port 80 (Production) / 5173 (Development)
+   - React + Vite + TypeScript
+   - Nginx in production mode
+   - Hot reload in development mode
+
+### Network Configuration
+
+- All containers communicate via `query-builder-network`
+- Backend uses service names: `mysql`, `mysql-sakila`
+- External access via mapped ports
+- Volumes persist data between restarts
+
+### Environment Variables
+
+Key environment variables for Docker:
+- `DATABASE_URL` - Settings database connection
+- `SETTINGS_DATABASE_URL` - Same as DATABASE_URL (for compatibility)
+- `ANTHROPIC_API_KEY` - Anthropic AI API key
+- `OPENAI_API_KEY` - OpenAI API key (alternative)
+- `SANDBOX_MODE` - Enable read-only mode
+- `NODE_ENV` - production/development
+- `PORT` - Backend port (default: 3001)
+
+## �📝 License
 
 This project is licensed under the ISC License.
 
-## 🔮 Future Enhancements
+## 🔮 Recent Improvements & Future Enhancements
 
-- [ ] OpenAI/GPT integration for better natural language processing
-- [ ] Support for more SQL features (JOINs, subqueries, etc.)
-- [ ] Query history and favorites
-- [ ] Database schema introspection
-- [ ] Export results to CSV/JSON
-- [ ] Multi-database support (PostgreSQL, SQLite)
-- [ ] Query performance analysis
+### ✅ Recently Completed
+
+- ✅ **Sandbox mode** - Secure read-only demonstrations
+- ✅ **Docker setup** - Complete containerization with 3 modes
+- ✅ **Sakila demo database** - Pre-configured demo data
+- ✅ **AI integration** - Anthropic Claude and OpenAI support
+- ✅ **Interactive setup** - User-friendly docker-start.sh script
+- ✅ **Landing page** - Professional marketing page
+- ✅ **Multiple databases** - Support for multiple database connections
+- ✅ **Purple theme** - Enhanced UI with purple accents
+
+### 🚀 Planned Enhancements
+
+- [ ] Support for more SQL features (advanced JOINs, subqueries, CTEs)
+- [ ] Query performance analysis and optimization suggestions
+- [ ] Database schema introspection and auto-configuration
+- [ ] Export results to CSV/JSON/Excel
+- [ ] Multi-database support (PostgreSQL, SQLite, SQL Server)
+- [ ] Query history with favorites and bookmarks
 - [ ] User authentication and query sharing
-- [x] ~~Sandbox mode for secure demonstrations~~ ✅ **Completed**
+- [ ] Advanced ERD visualization with interactive diagrams
+- [ ] Query templates and saved patterns
+- [ ] Real-time collaboration features
+- [ ] API rate limiting and caching
+- [ ] Comprehensive test coverage
+
+### 🐛 Bug Fixes & Improvements
+
+- ✅ Fixed Docker networking issues (localhost → service names)
+- ✅ Fixed port configuration for Sakila database (3310 external, 3306 internal)
+- ✅ Added missing `winston` logging dependency
+- ✅ Fixed TypeScript build errors (test files excluded)
+- ✅ Added `SETTINGS_DATABASE_URL` environment variable
+- ✅ Fixed SQL init script data type errors
+- ✅ Removed obsolete Docker Compose `version` attribute
+- ✅ Fixed frontend API integration (`useAI: true` parameter)
+- ✅ Improved error handling and logging

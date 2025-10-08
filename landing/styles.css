@@ -70,19 +70,27 @@ body {
 }
 
 .logo {
-    width: 120px;
-    height: 40px;
-    border-radius: 8px;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 4px 6px rgba(147, 51, 234, 0.25));
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.logo:hover {
+    transform: scale(1.05);
+    filter: drop-shadow(0 6px 8px rgba(147, 51, 234, 0.35));
 }
 
 .logo-text {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Inter', 'Open Sans', sans-serif;
     font-size: 1.5rem;
     font-weight: 700;
     background: linear-gradient(135deg, var(--purple-600) 0%, var(--purple-800) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: -0.02em;
 }
 
 .navigation {
@@ -113,6 +121,33 @@ body {
     height: 2px;
     background: var(--purple-600);
     border-radius: 1px;
+}
+
+.btn-coffee {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, var(--purple-600) 0%, var(--purple-800) 100%);
+    color: var(--white);
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(147, 51, 234, 0.3);
+    font-size: 0.9rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-coffee:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(147, 51, 234, 0.5);
+    border-color: rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, var(--purple-700) 0%, var(--purple-900) 100%);
+}
+
+.btn-coffee span {
+    font-size: 1.2rem;
 }
 
 /* Hero Section */

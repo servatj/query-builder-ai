@@ -297,7 +297,19 @@ function App() {
         <div className="max-w-6xl mx-auto p-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-6">
-              <img src="/logo.png" alt="Logo" className="h-20 w-20 object-contain" />
+              <svg className="h-20 w-20 flex-shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="48" height="48" rx="10" fill="url(#gradient1)"/>
+                <ellipse cx="24" cy="16" rx="10" ry="4" fill="white" opacity="0.9"/>
+                <path d="M14 16 L14 28 C14 30.2 18.5 32 24 32 C29.5 32 34 30.2 34 28 L34 16" stroke="white" strokeWidth="2" fill="none"/>
+                <ellipse cx="24" cy="28" rx="10" ry="4" fill="white" opacity="0.9"/>
+                <path d="M14 22 C14 24.2 18.5 26 24 26 C29.5 26 34 24.2 34 22" stroke="white" strokeWidth="2" fill="none"/>
+                <defs>
+                  <linearGradient id="gradient1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#9333ea"/>
+                    <stop offset="1" stopColor="#6b21a8"/>
+                  </linearGradient>
+                </defs>
+              </svg>
               <div>
                 <h1 className="text-3xl font-bold">AI-Powered Query Builder</h1>
                 <p className="text-muted-foreground">Convert natural language to SQL queries with real-time validation</p>

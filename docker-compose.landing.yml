@@ -1,0 +1,16 @@
+services:
+  # Landing Page
+  landing:
+    build:
+      context: .
+      dockerfile: Dockerfile.landing
+    container_name: query-builder-landing
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - landing-network
+
+networks:
+  landing-network:
+    driver: bridge

@@ -197,7 +197,7 @@ function App() {
       const response = await axios.post(`${API_BASE_URL}/api/validate-query`, { query: sqlQuery });
       setIsValid(response.data.isValid);
       
-      if (response.data.isValid) {
+      if (response.data.isValid) {  
         setPreviewData(response.data.data || []);
         setExecutionInfo({
           rowCount: response.data.rowCount,

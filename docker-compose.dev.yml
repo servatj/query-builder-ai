@@ -26,7 +26,8 @@ services:
 
   # Sakila Demo Database
   mysql-sakila:
-    image: servatj/sakila-mysql:latest
+    image: mysql:9.4
+    platform: linux/amd64
     container_name: query-builder-sakila-dev
     restart: unless-stopped
     environment:
@@ -38,6 +39,8 @@ services:
       - "3310:3306"
     volumes:
       - sakila_data_dev:/var/lib/mysql
+      - ./scripts/sakila-schema.sql:/docker-entrypoint-initdb.d/01-sakila-schema.sql:ro
+      - ./scripts/sakila-data.sql:/docker-entrypoint-initdb.d/02-sakila-data.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
       timeout: 20s

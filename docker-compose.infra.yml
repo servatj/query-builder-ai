@@ -24,6 +24,7 @@ services:
   # Sakila Demo Database (separate container)
   mysql-sakila:
     image: servatj/sakila-mysql:latest
+    platform: linux/amd64
     container_name: sakila
     restart: unless-stopped
     environment:

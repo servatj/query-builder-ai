@@ -7,7 +7,7 @@ services:
     container_name: query-builder-landing
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "5012:5012"
     networks:
       - landing-network
 

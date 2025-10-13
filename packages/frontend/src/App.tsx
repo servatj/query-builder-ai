@@ -12,8 +12,8 @@ import DiagramVisualizer from '@/components/DiagramVisualizer';
 import DatabaseSwitcher from '@/components/DatabaseSwitcher';
 import { format } from 'sql-formatter';
 
-// Use environment variable for API base URL, fallback to localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+// Use relative path for API calls - nginx will proxy /api/* to backend
+const API_BASE_URL = '';
 
 interface QueryPattern {
   intent: string;

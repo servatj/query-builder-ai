@@ -36,7 +36,6 @@ packages/*/.env.local
 # Documentation
 *.md
 docs/
-landing/
 *.pdf
 
 # Test files

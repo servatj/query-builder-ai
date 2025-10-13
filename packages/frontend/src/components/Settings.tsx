@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DatabaseForm from '@/components/DatabaseForm';
 import AIProviderSelector from '@/components/AIProviderSelector';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = '';
 
 interface QueryPattern {
   intent: string;

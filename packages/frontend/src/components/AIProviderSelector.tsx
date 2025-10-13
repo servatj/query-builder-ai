@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = '';
 
 export type AIProvider = 'openai' | 'anthropic';
 

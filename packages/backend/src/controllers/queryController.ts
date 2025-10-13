@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import aiService from '../services/aiService';
 import { getCachedRules, loadRulesFromFile, QueryPattern } from '../services/rulesService';
-import { sanitizeInput } from '../utils/validators';
+import { sanitizeInput, normalizeLimitClause } from '../utils/validators';
 import { databaseService } from '../services/databaseSystemService';
 import { queryLogService } from '../services/queryLogService';
 
@@ -54,7 +54,8 @@ export const generateQuery = async (req: Request, res: Response) => {
       try {
         const aiResult = await aiService.generateQuery({ prompt, schema: dynamicSchema });
         if (aiResult) {
-          generatedSql = aiResult.sql;
+          // Normalize any malformed LIMIT clauses from AI output
+          generatedSql = normalizeLimitClause(aiResult.sql, 20, 500);
           confidence = aiResult.confidence;
           
           // Log successful AI query generation
@@ -69,7 +70,7 @@ export const generateQuery = async (req: Request, res: Response) => {
           });
           
           return res.json({
-            sql: aiResult.sql,
+            sql: generatedSql,
             confidence: aiResult.confidence,
             source: aiService.getProvider(),
             reasoning: aiResult.reasoning,

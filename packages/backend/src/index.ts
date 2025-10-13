@@ -12,6 +12,7 @@ import databaseRoutes from './routes/databaseRoutes';
 import healthRoutes from './routes/healthRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import logger from './utils/logger';
+import { runStartupMigrations } from './services/migrationService';
 
 dotenv.config();
 
@@ -74,6 +75,16 @@ const bootStrap = async () => {
   const destinationPool = await createDestinationPool();
   setPool(pool);
   setDestinationPool(destinationPool);
+
+  // Run DB startup migrations (idempotent). If DATABASE_URL is missing, skip.
+  try {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (databaseUrl) {
+      await runStartupMigrations(databaseUrl);
+    }
+  } catch (err) {
+    logger.warn('⚠️  Startup migrations failed (continuing):', { error: err });
+  }
 };
 
 bootStrap();

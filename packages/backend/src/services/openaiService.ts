@@ -154,17 +154,27 @@ class OpenAIService {
 DATABASE SCHEMA:
 ${schemaDescription}
 
+IMPORTANT SCHEMA ANALYSIS:
+- Look for tables with compound names (e.g., film_actor, film_category) - these are junction tables linking two entities
+- Foreign keys typically follow the pattern: table_id (e.g., actor_id links to actor table, film_id links to film table)
+- For relationships like "actors in horror films", chain through: actor → film_actor → film → film_category → category
+- For relationships like "rented films", chain through: film → inventory → rental
+- Junction tables (film_actor, film_category, etc.) are bridges - ALWAYS join through them when connecting entities
+
 CRITICAL RULES FOR SQL GENERATION:
 1. ONLY use tables and columns that EXACTLY match the schema above
 2. Use proper MySQL syntax (backticks for identifiers if needed)
-3. Analyze relationships between tables based on common column names (e.g., actor_id, film_id)
-4. Use appropriate JOINs when multiple tables are needed
-5. Always include WHERE clauses when filtering is mentioned
-6. Add ORDER BY for "top", "most", "best" queries
-7. Include LIMIT clauses (default LIMIT 10-20 for safety)
-8. Use meaningful table aliases (e.g., 'f' for film, 'a' for actor)
-9. For text searches, use LIKE with wildcards: WHERE column LIKE '%value%'
-10. Handle possessive/plural forms intelligently (e.g., "films" → film table, "actors" → actor table)
+3. ANALYZE THE SCHEMA FIRST: Identify junction tables and foreign key relationships before writing SQL
+4. For many-to-many relationships, ALWAYS join through junction tables (e.g., film_actor links film and actor)
+5. Chain JOINs properly: If querying "actors in horror films", join actor → film_actor → film → film_category → category
+6. Always include WHERE clauses when filtering (e.g., WHERE category.name = 'Horror')
+7. Add ORDER BY for "top", "most", "best" queries, plus COUNT/GROUP BY for aggregations
+8. ALWAYS include LIMIT with a NUMERIC value (e.g., LIMIT 10, LIMIT 20) - NEVER use words or variables
+9. Use meaningful table aliases (e.g., 'f' for film, 'a' for actor, 'fa' for film_actor)
+10. For text searches, use LIKE with wildcards: WHERE column LIKE '%value%'
+11. Handle possessive/plural forms intelligently (e.g., "films" → film table, "actors" → actor table)
+
+IMPORTANT: LIMIT must ALWAYS be followed by a number (e.g., LIMIT 10, LIMIT 20), never by a word like "select" or a variable.
 
 CONFIDENCE SCORING (be realistic):
 - 0.9-1.0: Exact match with clear schema mapping
@@ -186,12 +196,30 @@ IMPORTANT:
 - Escape quotes properly in the SQL string
 - Be confident when the query clearly matches the schema
 
-EXAMPLE:
+EXAMPLES:
+
+Example 1 - Simple actor search:
 {
   "sql": "SELECT f.title, a.first_name, a.last_name FROM film f JOIN film_actor fa ON f.film_id = fa.film_id JOIN actor a ON fa.actor_id = a.actor_id WHERE CONCAT(a.first_name, ' ', a.last_name) LIKE '%Smith%' LIMIT 20",
   "confidence": 0.95,
   "reasoning": "Query finds films with actors matching 'Smith'. Joined film, film_actor, and actor tables using proper foreign keys. Used CONCAT and LIKE for name matching.",
   "tables_used": ["film", "film_actor", "actor"]
+}
+
+Example 2 - Category filtering with junction table:
+{
+  "sql": "SELECT a.first_name, a.last_name, f.title FROM actor a JOIN film_actor fa ON a.actor_id = fa.actor_id JOIN film f ON fa.film_id = f.film_id JOIN film_category fc ON f.film_id = fc.film_id JOIN category c ON fc.category_id = c.category_id WHERE c.name = 'Horror' LIMIT 20",
+  "confidence": 0.95,
+  "reasoning": "Query finds actors in horror films. Identified film_category as junction table linking film to category. Chained JOINs: actor → film_actor → film → film_category → category, filtered by category name.",
+  "tables_used": ["actor", "film_actor", "film", "film_category", "category"]
+}
+
+Example 3 - Top aggregation with proper grouping:
+{
+  "sql": "SELECT a.actor_id, a.first_name, a.last_name, COUNT(r.rental_id) AS rental_count FROM actor a JOIN film_actor fa ON a.actor_id = fa.actor_id JOIN film f ON fa.film_id = f.film_id JOIN inventory i ON f.film_id = i.film_id JOIN rental r ON i.inventory_id = r.inventory_id GROUP BY a.actor_id, a.first_name, a.last_name ORDER BY rental_count DESC LIMIT 10",
+  "confidence": 0.90,
+  "reasoning": "Query finds top rented actors. Chained actor → film_actor → film → inventory → rental. Grouped by actor, counted rentals, sorted descending.",
+  "tables_used": ["actor", "film_actor", "film", "inventory", "rental"]
 }`;
   }
 

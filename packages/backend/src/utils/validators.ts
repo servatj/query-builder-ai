@@ -48,3 +48,24 @@ export const validateSqlQuery = (query: string): { isValid: boolean; error?: str
 export const sanitizeInput = (input: string): string => {
   return input.trim().toLowerCase().replace(/[^\w\s]/g, '');
 };
+
+// Best-effort SQL sanitizer for common LLM artifacts
+// - Normalizes malformed LIMIT clauses like "LIMIT give" or "LIMIT twenty" to a safe numeric default
+// - Ensures LIMIT value is a positive integer and caps it to a maximum
+export const normalizeLimitClause = (sql: string, defaultLimit = 50, maxLimit = 500): string => {
+  if (!sql) return sql;
+  let normalized = sql;
+
+  // If LIMIT is present but not followed by a number, replace with default
+  normalized = normalized.replace(/\bLIMIT\s+(?!\d)\S+/gi, `LIMIT ${defaultLimit}`);
+
+  // If LIMIT is followed by a non-integer (e.g., words), coerce to default
+  normalized = normalized.replace(/\bLIMIT\s+([\w-]+)/gi, (_m, v: string) => {
+    const n = parseInt(v, 10);
+    if (Number.isNaN(n)) return `LIMIT ${defaultLimit}`;
+    const safe = Math.min(Math.max(n, 1), maxLimit);
+    return `LIMIT ${safe}`;
+  });
+
+  return normalized;
+};

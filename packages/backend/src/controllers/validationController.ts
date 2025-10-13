@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { getDestinationPool } from '../services/pools';
+import { normalizeLimitClause } from '../utils/validators';
 import { queryLogService } from '../services/queryLogService';
 
 export const validateQuery = async (req: Request, res: Response) => {
@@ -42,6 +43,8 @@ export const validateQuery = async (req: Request, res: Response) => {
       if (!safeQuery.toLowerCase().includes('limit')) {
         safeQuery = `${safeQuery} LIMIT 50`;
       }
+      // Normalize malformed LIMIT clauses that can appear from NL prompts (e.g., "LIMIT give")
+      safeQuery = normalizeLimitClause(safeQuery, 50, 500);
 
       const queryPromise = destinationPool.execute(safeQuery);
       const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Query timeout (30s)')), 30000));

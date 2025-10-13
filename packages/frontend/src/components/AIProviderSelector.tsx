@@ -140,7 +140,7 @@ const AIProviderSelector: React.FC<AIProviderSelectorProps> = ({ onProviderChang
                   )}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Claude 3.5 Sonnet - Latest and most capable model
+                  Claude Sonnet 4.0 - Latest and most capable model
                 </p>
                 <div className="mt-2">
                   <span

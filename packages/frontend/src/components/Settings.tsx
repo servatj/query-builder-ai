@@ -651,9 +651,9 @@ const Settings: React.FC = () => {
 {currentAIProvider === 'anthropic' ? `{
   "enabled": true,
   "apiKey": "sk-ant-your-anthropic-api-key",
-  "model": "claude-3-5-haiku-20241022",
-  "temperature": 0.3,
-  "maxTokens": 1000
+  "model": "claude-sonnet-4-20250514",
+  "temperature": 0.2,
+  "maxTokens": 2000
 }` : `{
   "enabled": true,
   "apiKey": "sk-your-openai-api-key",
@@ -669,11 +669,12 @@ const Settings: React.FC = () => {
                 <div className="text-xs text-muted-foreground space-y-1">
                   {currentAIProvider === 'anthropic' ? (
                     <>
-                      <div><code>claude-3-5-haiku-20241022</code> - Latest, fast & affordable ⭐ (Recommended)</div>
-                      <div><code>claude-3-5-sonnet-20241022</code> - Latest Sonnet (Deprecated)</div>
-                      <div><code>claude-3-opus-20240229</code> - Most capable</div>
-                      <div><code>claude-3-sonnet-20240229</code> - Balanced</div>
-                      <div><code>claude-3-haiku-20240307</code> - Legacy Haiku</div>
+                      <div><code>claude-sonnet-4-20250514</code> - Claude Sonnet 4.0 ⭐ (Recommended - Latest & Most Capable)</div>
+                      <div><code>claude-3-5-sonnet-20241022</code> - Claude 3.5 Sonnet</div>
+                      <div><code>claude-3-5-haiku-20241022</code> - Claude 3.5 Haiku - Fast & affordable</div>
+                      <div><code>claude-3-opus-20240229</code> - Claude 3 Opus</div>
+                      <div><code>claude-3-sonnet-20240229</code> - Claude 3 Sonnet</div>
+                      <div><code>claude-3-haiku-20240307</code> - Claude 3 Haiku</div>
                     </>
                   ) : (
                     <>
@@ -688,8 +689,8 @@ const Settings: React.FC = () => {
                 
                 <h4 className="font-medium mt-3 mb-1">Parameters</h4>
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <div><strong>temperature:</strong> 0.0-1.0 (creativity level)</div>
-                  <div><strong>maxTokens:</strong> Max response length</div>
+                  <div><strong>temperature:</strong> 0.0-1.0 (Recommended: 0.2 for structured SQL output)</div>
+                  <div><strong>maxTokens:</strong> Max response length (Recommended: 2000 for complex queries)</div>
                 </div>
               </div>
             </div>

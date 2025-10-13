@@ -19,15 +19,15 @@ CREATE TABLE database_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- AI/OpenAI configuration settings table
+-- AI configuration settings table (Anthropic Claude / OpenAI)
 CREATE TABLE ai_settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     enabled BOOLEAN DEFAULT FALSE,
     api_key VARCHAR(255), -- Encrypted in production
-    model VARCHAR(100) NOT NULL DEFAULT 'gpt-4-turbo-preview',
-    temperature DECIMAL(3,2) NOT NULL DEFAULT 0.30 CHECK (temperature >= 0.0 AND temperature <= 1.0),
-    max_tokens INT NOT NULL DEFAULT 1000 CHECK (max_tokens > 0 AND max_tokens <= 4000),
+    model VARCHAR(100) NOT NULL DEFAULT 'claude-sonnet-4-20250514',
+    temperature DECIMAL(3,2) NOT NULL DEFAULT 0.20 CHECK (temperature >= 0.0 AND temperature <= 1.0),
+    max_tokens INT NOT NULL DEFAULT 2000 CHECK (max_tokens > 0 AND max_tokens <= 8000),
     is_active BOOLEAN DEFAULT TRUE,
     is_default BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -93,7 +93,7 @@ VALUES
 -- Insert default AI configuration
 INSERT INTO ai_settings (name, enabled, model, temperature, max_tokens, is_active, is_default) 
 VALUES 
-('Default OpenAI', FALSE, 'gpt-4-turbo-preview', 0.30, 1000, TRUE, TRUE);
+('Default Anthropic Claude', FALSE, 'claude-sonnet-4-20250514', 0.20, 2000, TRUE, TRUE);
 
 -- Insert default application settings
 INSERT INTO app_settings (setting_key, setting_value, setting_type, description, is_system) 

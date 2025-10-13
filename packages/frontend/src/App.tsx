@@ -295,9 +295,9 @@ function App() {
       {/* Header with distinct background and full-width separator */}
       <div className="bg-muted/30 border-b border-border">
         <div className="max-w-6xl mx-auto p-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-6">
-              <svg className="h-20 w-20 flex-shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex items-center space-x-4 md:space-x-6">
+              <svg className="h-16 w-16 md:h-20 md:w-20 flex-shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect width="48" height="48" rx="10" fill="url(#gradient1)"/>
                 <ellipse cx="24" cy="16" rx="10" ry="4" fill="white" opacity="0.9"/>
                 <path d="M14 16 L14 28 C14 30.2 18.5 32 24 32 C29.5 32 34 30.2 34 28 L34 16" stroke="white" strokeWidth="2" fill="none"/>
@@ -311,17 +311,17 @@ function App() {
                 </defs>
               </svg>
               <div>
-                <h1 className="text-3xl font-bold">AI-Powered Query Builder</h1>
-                <p className="text-muted-foreground">Convert natural language to SQL queries with real-time validation</p>
+                <h1 className="text-2xl md:text-3xl font-bold">AI-Powered Query Builder</h1>
+                <p className="text-sm md:text-base text-muted-foreground">Convert natural language to SQL queries with real-time validation</p>
               </div>
               
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 md:gap-4 w-full md:w-auto justify-end">
               <DatabaseSwitcher onDatabaseChange={loadPatternsAndSchema} disabled={isSandboxMode} />
               <ThemeToggle />
               {healthStatus && (
-                <div className="text-right">
+                <div className="text-right w-full md:w-auto">
                   <div className={`text-sm font-medium ${getHealthStatusColor()}`}>
                     Backend: {healthStatus.status}
                   </div>

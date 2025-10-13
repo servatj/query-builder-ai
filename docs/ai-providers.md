@@ -5,7 +5,7 @@ This update adds support for multiple AI providers with Anthropic Claude as the 
 ## Features
 
 ### Multi-Provider Support
-- **Anthropic Claude** (Default): Claude 3.5 Sonnet and other Claude models
+- **Anthropic Claude** (Default): Claude Sonnet 4.0 and other Claude models
 - **OpenAI GPT**: GPT-4, GPT-3.5 Turbo, and other OpenAI models
 - Easy switching between providers through the UI
 - Independent configuration for each provider
@@ -13,11 +13,12 @@ This update adds support for multiple AI providers with Anthropic Claude as the 
 ### Available Models
 
 #### Anthropic
-- `claude-3-5-sonnet-20241022` (Default - Latest and most capable)
-- `claude-3-5-haiku-20241022`
-- `claude-3-opus-20240229`
-- `claude-3-sonnet-20240229`
-- `claude-3-haiku-20240307`
+- `claude-sonnet-4-20250514` (Default - Latest and most capable - Claude 4.0)
+- `claude-3-5-sonnet-20241022` (Claude 3.5 Sonnet)
+- `claude-3-5-haiku-20241022` (Claude 3.5 Haiku)
+- `claude-3-opus-20240229` (Claude 3 Opus)
+- `claude-3-sonnet-20240229` (Claude 3 Sonnet)
+- `claude-3-haiku-20240307` (Claude 3 Haiku)
 
 #### OpenAI
 - `gpt-4-turbo-preview`
@@ -123,7 +124,7 @@ const result = await aiService.generateQuery({
 
 ### Why Anthropic Claude?
 
-- **Latest Technology**: Claude 3.5 Sonnet is the most recent model (Oct 2024)
+- **Latest Technology**: Claude Sonnet 4.0 is the most recent model (May 2025)
 - **Strong SQL Generation**: Excellent at understanding database schemas
 - **Safety**: Built-in safety features for query generation
 - **Cost Effective**: Competitive pricing

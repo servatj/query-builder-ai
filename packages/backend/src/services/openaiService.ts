@@ -30,8 +30,8 @@ class OpenAIService {
     enabled: false,
     apiKey: '',
     model: 'gpt-4-turbo-preview',
-    temperature: 0.3,
-    maxTokens: 1000
+    temperature: 0.2,
+    maxTokens: 2000
   };
 
   constructor() {
@@ -146,47 +146,65 @@ class OpenAIService {
 
   private buildSystemPrompt(schema: Record<string, { columns: string[]; description: string }>): string {
     const schemaDescription = Object.entries(schema)
-      .map(([table, info]) => `${table}: ${info.columns.join(', ')} (${info.description})`)
+      .map(([table, info]) => `Table: ${table}\nColumns: ${info.columns.join(', ')}\nDescription: ${info.description}\n`)
       .join('\n');
 
-    return `You are an expert SQL query generator. Convert natural language requests into SQL queries using the provided database schema.
+    return `You are an expert SQL query generator specialized in MySQL. Your task is to convert natural language requests into precise, executable SQL queries.
 
-Database Schema:
+DATABASE SCHEMA:
 ${schemaDescription}
 
-Rules:
-1. Only use tables and columns that exist in the schema
-2. Use proper SQL syntax for MySQL
-3. Include appropriate WHERE clauses, JOINs, and ORDER BY when needed
-4. Add LIMIT clauses for potentially large result sets
-5. Use meaningful aliases for better readability
-6. Prioritize data safety - avoid destructive operations
+CRITICAL RULES FOR SQL GENERATION:
+1. ONLY use tables and columns that EXACTLY match the schema above
+2. Use proper MySQL syntax (backticks for identifiers if needed)
+3. Analyze relationships between tables based on common column names (e.g., actor_id, film_id)
+4. Use appropriate JOINs when multiple tables are needed
+5. Always include WHERE clauses when filtering is mentioned
+6. Add ORDER BY for "top", "most", "best" queries
+7. Include LIMIT clauses (default LIMIT 10-20 for safety)
+8. Use meaningful table aliases (e.g., 'f' for film, 'a' for actor)
+9. For text searches, use LIKE with wildcards: WHERE column LIKE '%value%'
+10. Handle possessive/plural forms intelligently (e.g., "films" → film table, "actors" → actor table)
 
-Response Format:
-Return a valid JSON object with:
-- sql: The generated SQL query (string) - keep it on one line, no newlines
-- confidence: Your confidence in the query (0.0 to 1.0)  
-- reasoning: Brief explanation of your approach (string) - use plain text, no newlines
-- tables_used: Array of table names used in the query (array)
+CONFIDENCE SCORING (be realistic):
+- 0.9-1.0: Exact match with clear schema mapping
+- 0.7-0.8: Good match with minor ambiguity
+- 0.5-0.6: Requires assumptions
+- Below 0.5: High uncertainty
 
-IMPORTANT: Ensure all strings are properly escaped and contain no literal newlines or control characters.
-The response must be valid, parseable JSON.
-
-Example:
+RESPONSE FORMAT (MUST BE VALID JSON):
 {
-  "sql": "SELECT fn_bin2uuid(user_profile_id) AS user_profile_id, user_profile_email, user_profile_status FROM users_profiles WHERE user_profile_is_deleted = 0 ORDER BY user_profile_updated_at DESC LIMIT 10",
-  "confidence": 0.9,
-  "reasoning": "Generated a query to list recent active user profiles selecting basic fields, filtering out deleted profiles, ordered by update time with a limit.",
-  "tables_used": ["users_profiles"]
+  "sql": "YOUR_SQL_QUERY_HERE",
+  "confidence": 0.0-1.0,
+  "reasoning": "Brief explanation of table joins, filters, and logic",
+  "tables_used": ["table1", "table2"]
+}
+
+IMPORTANT: 
+- Return ONLY the JSON object, no markdown, no code blocks, no extra text
+- Put the entire SQL query on one line
+- Escape quotes properly in the SQL string
+- Be confident when the query clearly matches the schema
+
+EXAMPLE:
+{
+  "sql": "SELECT f.title, a.first_name, a.last_name FROM film f JOIN film_actor fa ON f.film_id = fa.film_id JOIN actor a ON fa.actor_id = a.actor_id WHERE CONCAT(a.first_name, ' ', a.last_name) LIKE '%Smith%' LIMIT 20",
+  "confidence": 0.95,
+  "reasoning": "Query finds films with actors matching 'Smith'. Joined film, film_actor, and actor tables using proper foreign keys. Used CONCAT and LIKE for name matching.",
+  "tables_used": ["film", "film_actor", "actor"]
 }`;
   }
 
   private buildUserPrompt(naturalLanguageQuery: string): string {
-    return `Convert this natural language request into a SQL query:
+    return `Natural language request: "${naturalLanguageQuery}"
 
-"${naturalLanguageQuery}"
+Analyze this request carefully:
+1. Identify key entities (tables) mentioned
+2. Determine required columns based on the request
+3. Identify any filters, conditions, or sorting needed
+4. Generate the most accurate SQL query possible
 
-Please provide the response as a JSON object with the required fields.`;
+Respond with the JSON object containing sql, confidence, reasoning, and tables_used.`;
   }
 
   public async testConnection(): Promise<boolean> {

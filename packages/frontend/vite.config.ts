@@ -10,4 +10,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    port: 5173,
+    // Optional: Proxy API calls to backend in development
+    // Uncomment if you prefer using relative paths even in dev mode
+    // proxy: {
+    //   '/api': {
+    //     target: 'http://localhost:3001',
+    //     changeOrigin: true,
+    //   },
+    // },
+  },
 })

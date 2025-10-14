@@ -12,8 +12,10 @@ import DiagramVisualizer from '@/components/DiagramVisualizer';
 import DatabaseSwitcher from '@/components/DatabaseSwitcher';
 import { format } from 'sql-formatter';
 
-// Use relative path for API calls - nginx will proxy /api/* to backend
-const API_BASE_URL = '';
+// Use environment-aware API base URL
+// In development (npm run dev): uses direct backend URL
+// In production (Docker): uses relative path (nginx proxies /api/* to backend)
+const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3001' : '';
 
 interface QueryPattern {
   intent: string;

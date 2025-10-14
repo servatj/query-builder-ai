@@ -29,7 +29,15 @@ const createPool = () => {
   }
 
   try {
-    return mysql.createPool(databaseUrl);
+    const pool = mysql.createPool(databaseUrl);
+
+    if (!pool) {
+      logger.error('Failed to create database pool for database: ${databaseUrl}');
+      return null;
+    }
+
+    logger.info(`✅ Created database pool for database: ${databaseUrl}`);
+    return pool;
   } catch (error: unknown) {
     logger.error('Failed to create database pool:', { error });
     return null;
@@ -79,6 +87,7 @@ const bootStrap = async () => {
   // Run DB startup migrations (idempotent). If DATABASE_URL is missing, skip.
   try {
     const databaseUrl = process.env.DATABASE_URL;
+    
     if (databaseUrl) {
       await runStartupMigrations(databaseUrl);
     }

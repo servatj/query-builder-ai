@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:9.4
+    platform: linux/arm64
+    container_name: query-builder-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: queryuser
+      MYSQL_PASSWORD: querypass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+    networks:
+      - query-builder-network
+
+  # Sakila Demo Database (separate container)
+  mysql-sakila:
+    image: mysql:9.4
+    platform: linux/arm64
+    container_name: sakila
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: queryuser
+      MYSQL_PASSWORD: querypass
+      MYSQL_DATABASE: sakila
+    ports:
+      - "3310:3306"
+    volumes:
+      - sakila_data:/var/lib/mysql
+      - ./scripts/sakila-schema.sql:/docker-entrypoint-initdb.d/01-sakila-schema.sql:ro
+      - ./scripts/sakila-data.sql:/docker-entrypoint-initdb.d/02-sakila-data.sql:ro
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 20s
+      retries: 15
+      start_period: 90s
+    networks:
+      - query-builder-network
+
+
+volumes:
+  mysql_data:
+    driver: local
+  sakila_data:
+    driver: local
+
+networks:
+  query-builder-network:
+    driver: bridge

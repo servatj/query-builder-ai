@@ -86,9 +86,7 @@ CREATE INDEX idx_database_config_files_db_id ON database_config_files(database_s
 -- Insert default database configuration
 INSERT INTO database_settings (name, host, port, database_name, username, password, ssl_enabled, is_active, is_default) 
 VALUES 
-('Production Database', 'localhost', 3306, 'query_builder', 'queryuser', 'querypass', FALSE, TRUE, TRUE),
-('Sandbox Database', 'localhost', 3306, 'query_builder_sbox', 'queryuser', 'querypass', FALSE, TRUE, FALSE),
-('Sakila Demo Database', 'localhost', 3310, 'sakila', 'queryuser', 'querypass', FALSE, TRUE, FALSE);
+('Sakila Demo Database', 'localhost', 3306, 'sakila', 'queryuser', 'querypass', FALSE, TRUE, FALSE);
 
 -- Insert default AI configuration
 INSERT INTO ai_settings (name, enabled, model, temperature, max_tokens, is_active, is_default) 

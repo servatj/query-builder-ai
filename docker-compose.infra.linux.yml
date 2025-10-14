@@ -3,6 +3,7 @@ version: '3.8'
 services:
   mysql:
     image: mysql:9.4
+    platform: linux/amd64
     container_name: query-builder-mysql
     restart: unless-stopped
     environment:
@@ -16,14 +17,16 @@ services:
     
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
       timeout: 20s
       retries: 10
+      start_period: 60s
     networks:
       - query-builder-network
 
   # Sakila Demo Database (separate container)
   mysql-sakila:
-    image: servatj/sakila-mysql:latest
+    image: mysql:9.4
     platform: linux/amd64
     container_name: sakila
     restart: unless-stopped
@@ -36,11 +39,15 @@ services:
       - "3310:3306"
     volumes:
       - sakila_data:/var/lib/mysql
+      - ./scripts/sakila-schema.sql:/docker-entrypoint-initdb.d/01-sakila-schema.sql:ro
+      - ./scripts/sakila-data.sql:/docker-entrypoint-initdb.d/02-sakila-data.sql:ro
 
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
       timeout: 20s
-      retries: 10
+      retries: 15
+      start_period: 90s
     networks:
       - query-builder-network
 

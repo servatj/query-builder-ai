@@ -3,7 +3,6 @@ services:
   # MySQL Database for Query Builder settings (read-only)
   mysql:
     image: mysql:9.4
-    platform: linux/amd64
     container_name: query-builder-mysql-sandbox
     restart: unless-stopped
     environment:
@@ -91,7 +90,7 @@ services:
     container_name: query-builder-frontend-sandbox
     restart: unless-stopped
     ports:
-      - "5010:80"
+      - "80:80"
     depends_on:
       - backend
     networks:

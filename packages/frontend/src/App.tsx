@@ -15,7 +15,7 @@ import { format } from 'sql-formatter';
 // Use environment-aware API base URL
 // In development (npm run dev): uses direct backend URL
 // In production (Docker): uses relative path (nginx proxies /api/* to backend)
-const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3001' : '';
+const API_BASE_URL = '';
 
 interface QueryPattern {
   intent: string;

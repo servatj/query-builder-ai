@@ -1,0 +1,189 @@
+---
+import { getCollection } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+export const getStaticPaths = (async () => {
+    const blogPosts = await getCollection('blog');
+    return blogPosts.map(post => ({
+        params: { slug: post.slug },
+        props: { post },
+    }));
+}) satisfies GetStaticPaths;
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+
+const formattedDate = new Date(post.data.date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+});
+---
+
+<BaseLayout title={post.data.title} description={post.data.excerpt}>
+    <Header />
+    <article class="blog-post-container">
+        <div class="container">
+            <div class="blog-post-header">
+                <a href="/#blog" class="back-link">← Back to Blog</a>
+                <h1 class="blog-post-title">{post.data.title}</h1>
+                <div class="blog-post-meta">
+                    <span class="blog-post-date">{formattedDate}</span>
+                    <span class="blog-post-author">by {post.data.author}</span>
+                </div>
+                <div class="blog-post-tags">
+                    {post.data.tags.map(tag => (
+                        <span class="blog-tag">{tag}</span>
+                    ))}
+                </div>
+            </div>
+            <div class="blog-post-content">
+                <Content />
+            </div>
+        </div>
+    </article>
+    <Footer />
+</BaseLayout>
+
+<style>
+    .blog-post-container {
+        padding: 6rem 0 4rem;
+        background: var(--gray-50);
+        min-height: calc(100vh - 200px);
+    }
+
+    .blog-post-header {
+        margin-bottom: 3rem;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        color: var(--purple-600);
+        text-decoration: none;
+        font-weight: 500;
+        margin-bottom: 2rem;
+        transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+        color: var(--purple-700);
+    }
+
+    .blog-post-title {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 1rem;
+        line-height: 1.2;
+    }
+
+    .blog-post-meta {
+        display: flex;
+        gap: 1rem;
+        color: var(--gray-600);
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .blog-post-tags {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .blog-post-content {
+        background: var(--white);
+        padding: 3rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .blog-post-content :global(h1),
+    .blog-post-content :global(h2),
+    .blog-post-content :global(h3),
+    .blog-post-content :global(h4) {
+        color: var(--gray-900);
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .blog-post-content :global(h1) {
+        font-size: 2.5rem;
+        border-bottom: 2px solid var(--purple-200);
+        padding-bottom: 0.5rem;
+    }
+
+    .blog-post-content :global(h2) {
+        font-size: 2rem;
+    }
+
+    .blog-post-content :global(h3) {
+        font-size: 1.5rem;
+    }
+
+    .blog-post-content :global(p) {
+        margin-bottom: 1.5rem;
+        line-height: 1.8;
+        color: var(--gray-700);
+    }
+
+    .blog-post-content :global(ul),
+    .blog-post-content :global(ol) {
+        margin-bottom: 1.5rem;
+        padding-left: 2rem;
+    }
+
+    .blog-post-content :global(li) {
+        margin-bottom: 0.5rem;
+        line-height: 1.8;
+    }
+
+    .blog-post-content :global(a) {
+        color: var(--purple-600);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .blog-post-content :global(a:hover) {
+        color: var(--purple-700);
+        text-decoration: underline;
+    }
+
+    .blog-post-content :global(code) {
+        background: var(--gray-100);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+
+    .blog-post-content :global(pre) {
+        background: var(--gray-900);
+        color: var(--white);
+        padding: 1.5rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin-bottom: 1.5rem;
+    }
+
+    .blog-post-content :global(pre code) {
+        background: none;
+        padding: 0;
+        color: inherit;
+    }
+
+    @media (max-width: 768px) {
+        .blog-post-title {
+            font-size: 2rem;
+        }
+
+        .blog-post-content {
+            padding: 1.5rem;
+        }
+    }
+</style>

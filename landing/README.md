@@ -1,66 +1,89 @@
-# Query Builder Landing Page
+# Maisql Landing Page
 
-This is the landing page for the AI-Powered Query Builder project. It provides an overview of the key features and links to the main application.
+This is the landing page for Maisql, built with [Astro](https://astro.build).
 
-## Structure
+## 🚀 Project Structure
 
-- `index.html` - Main landing page with header, hero section, features, and call-to-action
-- `styles.css` - Complete responsive styling with modern design
-- `script.js` - Interactive functionality including smooth scrolling and animations
-- `logo.png` - Project logo placeholder
-- `README.md` - This documentation file
+```
+/
+├── public/
+│   └── logo.png
+├── src/
+│   ├── components/
+│   │   ├── Blog.astro
+│   │   ├── CTA.astro
+│   │   ├── Features.astro
+│   │   ├── Footer.astro
+│   │   ├── Header.astro
+│   │   └── Hero.astro
+│   ├── content/
+│   │   ├── blog/
+│   │   │   └── welcome-to-maisql.md
+│   │   └── config.ts
+│   ├── layouts/
+│   │   └── BaseLayout.astro
+│   ├── pages/
+│   │   ├── blog/
+│   │   │   └── [slug].astro
+│   │   └── index.astro
+│   └── styles/
+│       └── global.css
+└── package.json
+```
 
-## Features
+## 🧞 Commands
 
-### Navigation
-- Fixed header with logo and navigation links
-- Links to Home, Sandbox (localhost:3000), GitBook documentation, and GitHub repository
-- Smooth scrolling between sections
-- Active navigation highlighting
+All commands are run from the root of the landing directory:
 
-### Sections
-1. **Hero Section** - Main title, subtitle, and call-to-action buttons
-2. **Features Section** - Six key features with icons and descriptions:
-   - AI-Powered Generation
-   - Real-time Validation
-   - Multi-Database Support
-   - Interactive Schema Explorer
-   - Smart Query Patterns
-   - Advanced Configuration
-3. **Call-to-Action** - Secondary CTA section with links to sandbox and GitHub
-4. **Footer** - Project information and links
+| Command                | Action                                           |
+| :--------------------- | :----------------------------------------------- |
+| `npm install`          | Installs dependencies                            |
+| `npm run dev`          | Starts local dev server at `localhost:4321`      |
+| `npm run build`        | Build your production site to `./dist/`          |
+| `npm run preview`      | Preview your build locally, before deploying     |
+| `npm run astro ...`    | Run CLI commands like `astro add`, `astro check` |
 
-### Design
-- Modern gradient design with professional color scheme
-- Fully responsive layout (desktop, tablet, mobile)
-- Smooth animations and hover effects
-- Accessible typography and contrast
-- Card-based feature layout
+## 📝 Adding Blog Posts
 
-## Usage
+1. Create a new `.md` file in `src/content/blog/`
+2. Add frontmatter with the following fields:
+   ```yaml
+   ---
+   title: "Your Post Title"
+   date: "YYYY-MM-DD"
+   author: "Author Name"
+   excerpt: "Brief description of the post"
+   tags: ["tag1", "tag2"]
+   ---
+   ```
+3. Write your content in Markdown
+4. The post will automatically appear on the homepage and have its own page at `/blog/[slug]`
 
-1. Open `index.html` in a web browser
-2. The page links to:
-   - **Sandbox**: http://localhost:3000 (local development server)
-   - **GitBook**: https://docs.anthropic.com (documentation)
-   - **GitHub**: https://github.com/your-username/query-builder (repository)
+## 🐳 Docker
 
-## Customization
+The landing page is built using Docker multi-stage builds:
+- Build stage: Compiles the Astro site
+- Production stage: Serves static files with nginx
 
-### Links
-Update the following links in `index.html`:
-- Change GitHub URL from placeholder to actual repository
-- Update GitBook URL to actual documentation site
-- Modify sandbox URL if running on different port
+Build and run:
+```bash
+docker build -f Dockerfile.landing -t maisql-landing .
+docker run -p 8080:80 maisql-landing
+```
 
-### Logo
-Replace `logo.png` with your actual project logo (40x40px recommended)
+## 🎨 Customization
 
-### Content
-Modify the feature descriptions and other content as needed in `index.html`
+- **Styles**: Edit `src/styles/global.css` for global styles
+- **Components**: Modify components in `src/components/`
+- **Content**: Update text and links directly in component files
+- **Configuration**: Adjust `astro.config.mjs` for site settings
 
-## Browser Support
+## 🌐 Running from Root
 
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- Responsive design works on all screen sizes
-- Progressive enhancement with JavaScript disabled
+From the project root, you can use these npm scripts:
+
+```bash
+npm run dev:landing    # Start development server
+npm run build:landing  # Build for production
+npm run start:landing  # Preview production build
+```

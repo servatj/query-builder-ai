@@ -15,7 +15,7 @@ import { format } from 'sql-formatter';
 // Use environment-aware API base URL
 // In development (npm run dev): uses direct backend URL
 // In production (Docker): uses relative path (nginx proxies /api/* to backend)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://maisql.com';
 
 console.log('API Base URL:', API_BASE_URL);
 

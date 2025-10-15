@@ -31,12 +31,15 @@ describe('validators', () => {
 
   describe('sqlQuerySchema', () => {
     it('validates valid SQL query objects', () => {
-      const valid = { query: 'SELECT * FROM users' };
-      expect(sqlQuerySchema.parse(valid)).toEqual(valid);
+      const valid = { sql: 'SELECT * FROM users' };
+      expect(sqlQuerySchema.parse(valid)).toEqual({
+        sql: 'SELECT * FROM users',
+        execute: false
+      });
     });
 
     it('rejects empty query', () => {
-      expect(() => sqlQuerySchema.parse({ query: '' })).toThrow();
+      expect(() => sqlQuerySchema.parse({ sql: '' })).toThrow();
     });
   });
 

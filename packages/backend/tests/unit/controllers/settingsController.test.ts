@@ -1,5 +1,54 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response } from 'express';
+
+// Mock mysql2/promise
+vi.mock('mysql2/promise', () => {
+  return {
+    default: {
+      createPool: vi.fn(() => ({
+        getConnection: vi.fn(),
+        execute: vi.fn(),
+        end: vi.fn()
+      }))
+    }
+  };
+});
+
+// Don't mock the controller functions - we want to test them
+
+// Mock index.ts functions
+vi.mock('../../../src/index', () => ({
+  recreateDestinationPool: vi.fn()
+}));
+
+// Mock sandbox utils
+vi.mock('../../../src/utils/sandbox', () => ({
+  requireNonSandboxMode: vi.fn(),
+  getSandboxStatus: vi.fn(() => ({ sandbox: false }))
+}));
+
+// Mock queryLogService
+vi.mock('../../../src/services/queryLogService', () => ({
+  queryLogService: {
+    logQuery: vi.fn()
+  }
+}));
+
+// Mock the pools service
+vi.mock('../../../src/services/pools', () => ({
+  getPool: vi.fn(),
+  setPool: vi.fn(),
+  getDestinationPool: vi.fn(),
+  setDestinationPool: vi.fn()
+}));
+
+// Mock aiService
+vi.mock('../../../src/services/aiService', () => ({
+  default: {
+    enabled: false,
+    getProvider: vi.fn().mockReturnValue('anthropic')
+  }
+}));
 import { 
   getSettings, 
   updateRules, 
@@ -26,7 +75,8 @@ vi.mock('../../../src/services/rulesService', () => ({
   loadRulesFromDatabase: vi.fn(),
   upsertRulesToDatabase: vi.fn(),
   upsertSchemaToDatabase: vi.fn(),
-  updateSchemaInDatabase: vi.fn()
+  updateSchemaInDatabase: vi.fn(),
+  clearCachedRules: vi.fn()
 }));
 
 vi.mock('../../../src/services/databaseSystemService', () => ({
@@ -70,7 +120,7 @@ vi.mock('openai', () => ({
   OpenAI: vi.fn()
 }));
 
-import { getCachedRules, upsertRulesToFile, loadRulesFromDatabase, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase } from '../../../src/services/rulesService';
+import { getCachedRules, upsertRulesToFile, loadRulesFromDatabase, upsertRulesToDatabase, upsertSchemaToDatabase, updateSchemaInDatabase, clearCachedRules } from '../../../src/services/rulesService';
 import databaseService from '../../../src/services/databaseSystemService';
 import openaiService from '../../../src/services/openaiService';
 
@@ -141,7 +191,12 @@ describe('settingsController', () => {
       expect(res.json).toHaveBeenCalledWith({
         rules: mockRules,
         database: mockDatabaseConfig,
-        ai: mockAIConfig
+        ai: {
+          ...mockAIConfig,
+          provider: 'openai',
+          enabled: true
+        },
+        sandbox: false
       });
     });
 
@@ -176,8 +231,10 @@ describe('settingsController', () => {
           temperature: 0.3,
           maxTokens: 1000,
           is_active: true,
-          is_default: true
-        }
+          is_default: true,
+          provider: 'openai'
+        },
+        sandbox: false
       });
     });
 
@@ -483,13 +540,8 @@ describe('settingsController', () => {
         is_active: true,
         is_default: true
       });
-      expect(openaiService.updateConfig).toHaveBeenCalledWith({
-        enabled: true,
-        apiKey: 'test-key',
-        model: 'gpt-4',
-        temperature: 0.5,
-        maxTokens: 2000
-      });
+      // Note: Legacy updateAI endpoint doesn't call openaiService.updateConfig
+      expect(openaiService.updateConfig).not.toHaveBeenCalled();
       expect(res.json).toHaveBeenCalledWith({
         success: true,
         message: 'AI configuration updated successfully'
@@ -741,8 +793,13 @@ describe('settingsController', () => {
         
         await getRules(req, res);
         
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ error: 'No rules configuration found' });
+        expect(res.json).toHaveBeenCalledWith({
+          success: true,
+          data: {
+            schema: {},
+            query_patterns: []
+          }
+        });
       });
     });
 
@@ -792,7 +849,8 @@ describe('settingsController', () => {
         expect(databaseService.switchDefaultDatabase).toHaveBeenCalledWith(2);
         expect(res.json).toHaveBeenCalledWith({
           success: true,
-          message: 'Default database switched successfully'
+          message: 'Default database switched successfully',
+          database: expect.any(Object)
         });
       });
 

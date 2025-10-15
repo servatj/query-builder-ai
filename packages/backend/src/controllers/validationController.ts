@@ -7,7 +7,7 @@ export const validateQuery = async (req: Request, res: Response) => {
   const startTime = Date.now();
   
   try {
-    const { query } = req.body as { query: string };
+    const { sql, execute = false } = req.body as { sql: string; execute?: boolean };
     const destinationPool = getDestinationPool();
     
     // Extract user session and IP for logging
@@ -17,8 +17,8 @@ export const validateQuery = async (req: Request, res: Response) => {
     if (!destinationPool) {
       // Log database configuration error
       await queryLogService.logQuery({
-        natural_language_query: `Database configuration error for query: ${query}`,
-        generated_sql: query,
+        natural_language_query: `Database configuration error for query: ${sql}`,
+        generated_sql: sql,
         execution_status: 'execution_error',
         execution_time_ms: Date.now() - startTime,
         error_message: 'Database not configured. Please set DATABASE_URL environment variable.',
@@ -36,10 +36,10 @@ export const validateQuery = async (req: Request, res: Response) => {
     let connection: any;
     try {
       connection = await destinationPool.getConnection();
-      const explainQuery = `EXPLAIN ${query.trim()}`;
+      const explainQuery = `EXPLAIN ${sql.trim()}`;
       await connection.query(explainQuery);
 
-      let safeQuery = query.trim();
+      let safeQuery = sql.trim();
       if (!safeQuery.toLowerCase().includes('limit')) {
         safeQuery = `${safeQuery} LIMIT 50`;
       }
@@ -56,23 +56,23 @@ export const validateQuery = async (req: Request, res: Response) => {
       
       // Log successful query execution
       await queryLogService.logQuery({
-        natural_language_query: `Query validation and execution: ${query.substring(0, 100)}${query.length > 100 ? '...' : ''}`,
-        generated_sql: query,
+        natural_language_query: `Query validation and execution: ${sql.substring(0, 100)}${sql.length > 100 ? '...' : ''}`,
+        generated_sql: sql,
         execution_status: 'success',
         execution_time_ms: executionTime,
         user_session: userSession,
         ip_address: ipAddress
       });
       
-      return res.json({ isValid: true, syntaxValid: true, data, rowCount, executionTime: new Date().toISOString(), limited: !query.toLowerCase().includes('limit') });
+      return res.json({ isValid: true, syntaxValid: true, results: execute ? data : undefined, rowCount: execute ? rowCount : undefined, executionTime: `${executionTime}ms`, limited: !sql.toLowerCase().includes('limit') });
     } catch (error: any) {
       const isSyntaxError = error.code === 'ER_PARSE_ERROR' || error.message.includes('syntax') || error.message.includes('SQL syntax');
       const executionTime = Date.now() - startTime;
       
       // Log query execution error
       await queryLogService.logQuery({
-        natural_language_query: `Query validation failed: ${query.substring(0, 100)}${query.length > 100 ? '...' : ''}`,
-        generated_sql: query,
+        natural_language_query: `Query validation failed: ${sql.substring(0, 100)}${sql.length > 100 ? '...' : ''}`,
+        generated_sql: sql,
         execution_status: isSyntaxError ? 'validation_error' : 'execution_error',
         execution_time_ms: executionTime,
         error_message: error.message,
@@ -97,8 +97,8 @@ export const validateQuery = async (req: Request, res: Response) => {
     
     // Log internal server error
     await queryLogService.logQuery({
-      natural_language_query: `Server error during validation: ${req.body?.query || 'unknown'}`,
-      generated_sql: req.body?.query,
+      natural_language_query: `Server error during validation: ${req.body?.sql || 'unknown'}`,
+      generated_sql: req.body?.sql,
       execution_status: 'execution_error',
       execution_time_ms: Date.now() - startTime,
       error_message: error.message,

@@ -3,10 +3,21 @@ import type { Request, Response } from 'express';
 import { getHealth } from '../../../src/controllers/healthController';
 
 // Mock the services
-vi.mock('../../../src/services/openaiService', () => ({
+vi.mock('../../../src/services/aiService', () => ({
   __esModule: true,
   default: {
-    enabled: false
+    enabled: false,
+    getProvider: vi.fn().mockReturnValue('anthropic')
+  }
+}));
+
+vi.mock('../../../src/services/databaseSystemService', () => ({
+  databaseService: {
+    getDefaultDatabaseConfig: vi.fn().mockResolvedValue({
+      database_name: 'sakila',
+      host: 'localhost',
+      port: 3310
+    })
   }
 }));
 
@@ -14,7 +25,7 @@ vi.mock('../../../src/services/pools', () => ({
   getPool: vi.fn()
 }));
 
-import openaiService from '../../../src/services/openaiService';
+import aiService from '../../../src/services/aiService';
 import { getPool } from '../../../src/services/pools';
 
 const createMockRes = () => {
@@ -47,10 +58,10 @@ describe('healthController', () => {
   });
 
   describe('getHealth', () => {
-    it('should return healthy status with database connected and OpenAI enabled', async () => {
+    it('should return healthy status with database connected and AI enabled', async () => {
       const mockPool = createMockPool();
       vi.mocked(getPool).mockReturnValue(mockPool as any);
-      (openaiService as any).enabled = true;
+      (aiService as any).enabled = true;
       
       const req = {} as Request;
       const res = createMockRes();
@@ -61,22 +72,24 @@ describe('healthController', () => {
         status: 'healthy',
         timestamp: '2023-01-01T12:00:00.000Z',
         database: 'connected',
-        database_host: 'localhost:3310',
-        database_name: 'sakila',
-        openai: 'enabled',
+        ai_provider: 'anthropic',
+        ai_enabled: 'enabled',
         services: {
           database: 'connected',
-          openai: 'enabled'
-        }
+          ai: 'enabled',
+          ai_provider: 'anthropic'
+        },
+        database_name: 'sakila',
+        database_host: 'localhost:3310'
       });
       expect(mockPool.getConnection).toHaveBeenCalledTimes(1);
       expect(res.status).not.toHaveBeenCalled();
     });
 
-    it('should return healthy status with database connected and OpenAI disabled', async () => {
+    it('should return healthy status with database connected and ai disabled', async () => {
       const mockPool = createMockPool();
       vi.mocked(getPool).mockReturnValue(mockPool as any);
-      (openaiService as any).enabled = false;
+      (aiService as any).enabled = false;
       
       const req = {} as Request;
       const res = createMockRes();
@@ -87,19 +100,21 @@ describe('healthController', () => {
         status: 'healthy',
         timestamp: '2023-01-01T12:00:00.000Z',
         database: 'connected',
-        database_host: 'localhost:3310',
-        database_name: 'sakila',
-        openai: 'disabled',
+        ai_provider: 'anthropic',
+        ai_enabled: 'disabled',
         services: {
           database: 'connected',
-          openai: 'disabled'
-        }
+          ai: 'disabled',
+          ai_provider: 'anthropic'
+        },
+        database_name: 'sakila',
+        database_host: 'localhost:3310'
       });
     });
 
     it('should return healthy status with database disconnected when pool is null', async () => {
       vi.mocked(getPool).mockReturnValue(null);
-      (openaiService as any).enabled = true;
+      (aiService as any).enabled = true;
       
       const req = {} as Request;
       const res = createMockRes();
@@ -110,20 +125,22 @@ describe('healthController', () => {
         status: 'healthy',
         timestamp: '2023-01-01T12:00:00.000Z',
         database: 'disconnected',
-        database_host: 'localhost:3310',
-        database_name: 'sakila',
-        openai: 'enabled',
+        ai_provider: 'anthropic',
+        ai_enabled: 'enabled',
         services: {
           database: 'disconnected',
-          openai: 'enabled'
-        }
+          ai: 'enabled',
+          ai_provider: 'anthropic'
+        },
+        database_name: 'sakila',
+        database_host: 'localhost:3310'
       });
     });
 
     it('should return healthy status with database error when connection fails', async () => {
       const mockPool = createMockPool(true);
       vi.mocked(getPool).mockReturnValue(mockPool as any);
-      (openaiService as any).enabled = true;
+      (aiService as any).enabled = true;
       
       const req = {} as Request;
       const res = createMockRes();
@@ -134,13 +151,15 @@ describe('healthController', () => {
         status: 'healthy',
         timestamp: '2023-01-01T12:00:00.000Z',
         database: 'error',
-        database_host: 'localhost:3310',
-        database_name: 'sakila',
-        openai: 'enabled',
+        ai_provider: 'anthropic',
+        ai_enabled: 'enabled',
         services: {
           database: 'error',
-          openai: 'enabled'
-        }
+          ai: 'enabled',
+          ai_provider: 'anthropic'
+        },
+        database_name: 'sakila',
+        database_host: 'localhost:3310'
       });
       expect(mockPool.getConnection).toHaveBeenCalledTimes(1);
     });
@@ -171,7 +190,7 @@ describe('healthController', () => {
         getConnection: vi.fn().mockResolvedValue(mockConnection)
       };
       vi.mocked(getPool).mockReturnValue(mockPool as any);
-      (openaiService as any).enabled = true;
+      (aiService as any).enabled = true;
       
       const req = {} as Request;
       const res = createMockRes();

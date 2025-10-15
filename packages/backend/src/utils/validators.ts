@@ -6,7 +6,8 @@ export const promptSchema = z.object({
 });
 
 export const sqlQuerySchema = z.object({
-  query: z.string().min(1)
+  sql: z.string().min(1),
+  execute: z.boolean().optional().default(false)
 });
 
 export const validatePrompt = (prompt: string): { isValid: boolean; error?: string } => {

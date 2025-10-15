@@ -13,6 +13,22 @@ export const getSettings = async (_req: Request, res: Response) => {
     const defaultAiConfig = await databaseService.getDefaultAISettings();
     const sandboxStatus = getSandboxStatus();
     
+    // Transform AI config to include provider field
+    const aiConfig = defaultAiConfig || {
+      name: 'Default',
+      enabled: false,
+      apiKey: '',
+      model: 'gpt-4-turbo-preview',
+      temperature: 0.3,
+      maxTokens: 1000,
+      is_active: true,
+      is_default: true
+    };
+
+    // Add provider field based on model or determine from config
+    const provider = aiConfig.model?.includes('claude') || aiConfig.model?.includes('anthropic') ? 'anthropic' : 
+                    aiConfig.model?.includes('gpt') || aiConfig.model?.includes('openai') ? 'openai' : 'anthropic';
+
     return res.json({
       rules,
       database: defaultDbConfig || {
@@ -26,15 +42,10 @@ export const getSettings = async (_req: Request, res: Response) => {
         is_active: true,
         is_default: true
       },
-      ai: defaultAiConfig || {
-        name: 'Default',
-        enabled: false,
-        apiKey: '',
-        model: 'gpt-4-turbo-preview',
-        temperature: 0.3,
-        maxTokens: 1000,
-        is_active: true,
-        is_default: true
+      ai: {
+        ...aiConfig,
+        provider,
+        enabled: Boolean(aiConfig.enabled)
       },
       ...sandboxStatus
     });
@@ -265,10 +276,14 @@ export const getAllAISettings = async (_req: Request, res: Response) => {
 export const getRules = async (_req: Request, res: Response) => {
   try {
     const rules = await loadRulesFromDatabase();
-    if (!rules) {
-      return res.status(404).json({ error: 'No rules configuration found' });
-    }
-    return res.json({ success: true, data: rules });
+    // Return success with empty rules if none found
+    return res.json({ 
+      success: true, 
+      data: rules || { 
+        schema: {}, 
+        query_patterns: [] 
+      } 
+    });
   } catch (error) {
     console.error('Failed to get rules:', error);
     return res.status(500).json({ error: 'Failed to fetch rules configuration' });

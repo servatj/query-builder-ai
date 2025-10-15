@@ -15,7 +15,7 @@ import { format } from 'sql-formatter';
 // Use environment-aware API base URL
 // In development (npm run dev): uses direct backend URL
 // In production (Docker): uses relative path (nginx proxies /api/* to backend)
-const API_BASE_URL = '';
+const API_BASE_URL = 'http://localhost:3001';
 
 interface QueryPattern {
   intent: string;
@@ -98,6 +98,7 @@ function App() {
       
       // Check sandbox mode status
       const settingsResponse = await axios.get(`${API_BASE_URL}/api/settings`);
+      console.log('Sandbox mode:', settingsResponse.data.sandboxMode);
       setIsSandboxMode(settingsResponse.data.sandboxMode || false);
     } catch (err) {
       console.warn('Failed to load initial data:', err);

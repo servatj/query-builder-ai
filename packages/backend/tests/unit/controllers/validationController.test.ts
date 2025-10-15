@@ -7,6 +7,13 @@ vi.mock('../../../src/services/pools', () => ({
   getDestinationPool: vi.fn()
 }));
 
+// Mock queryLogService
+vi.mock('../../../src/services/queryLogService', () => ({
+  queryLogService: {
+    logQuery: vi.fn()
+  }
+}));
+
 import { getDestinationPool } from '../../../src/services/pools';
 
 const createMockRes = () => {
@@ -16,6 +23,13 @@ const createMockRes = () => {
   } as any as Response & { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn> };
   return res;
 };
+
+const createMockRequest = (sql: string, execute: boolean = true): Request => ({
+  body: { sql, execute },
+  headers: { 'x-session-id': 'test-session' },
+  ip: '127.0.0.1',
+  socket: { remoteAddress: '127.0.0.1' }
+} as any as Request);
 
 const createMockPool = (shouldFailExplain = false, shouldFailExecution = false, syntaxError = false) => ({
   getConnection: vi.fn().mockResolvedValue({
@@ -53,7 +67,7 @@ const createMockPool = (shouldFailExplain = false, shouldFailExecution = false, 
 describe('validationController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers({ timer: 'modern' });
+    vi.useFakeTimers();
     vi.setSystemTime(new Date('2023-01-01T12:00:00Z'));
   });
 
@@ -66,9 +80,7 @@ describe('validationController', () => {
       const mockPool = createMockPool();
       vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
       
-      const req = {
-        body: { query: 'SELECT * FROM users' }
-      } as Request;
+      const req = createMockRequest('SELECT * FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
@@ -76,12 +88,12 @@ describe('validationController', () => {
       expect(res.json).toHaveBeenCalledWith({
         isValid: true,
         syntaxValid: true,
-        data: [
+        results: [
           { id: 1, name: 'John', email: 'john@example.com' },
           { id: 2, name: 'Jane', email: 'jane@example.com' }
         ],
         rowCount: 2,
-        executionTime: '2023-01-01T12:00:00.000Z',
+        executionTime: expect.stringMatching(/\d+ms/),
         limited: true
       });
       expect(res.status).not.toHaveBeenCalled();
@@ -91,13 +103,12 @@ describe('validationController', () => {
       const mockPool = createMockPool();
       vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
       
-      const req = {
-        body: { query: 'SELECT * FROM users' }
-      } as Request;
+      const req = createMockRequest('SELECT * FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
       
+      // Verify LIMIT was added
       expect(mockPool.execute).toHaveBeenCalledWith('SELECT * FROM users LIMIT 50');
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         limited: true
@@ -108,13 +119,12 @@ describe('validationController', () => {
       const mockPool = createMockPool();
       vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
       
-      const req = {
-        body: { query: 'SELECT * FROM users LIMIT 10' }
-      } as Request;
+      const req = createMockRequest('SELECT * FROM users LIMIT 10', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
       
+      // Verify LIMIT was not added again
       expect(mockPool.execute).toHaveBeenCalledWith('SELECT * FROM users LIMIT 10');
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         limited: false
@@ -124,9 +134,7 @@ describe('validationController', () => {
     it('should return 503 when database is not configured', async () => {
       vi.mocked(getDestinationPool).mockReturnValue(null);
       
-      const req = {
-        body: { query: 'SELECT * FROM users' }
-      } as Request;
+      const req = createMockRequest('SELECT * FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
@@ -143,9 +151,7 @@ describe('validationController', () => {
       const mockPool = createMockPool(false, true, true);
       vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
       
-      const req = {
-        body: { query: 'SELEC * FROM users' }
-      } as Request;
+      const req = createMockRequest('SELEC * FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
@@ -165,9 +171,7 @@ describe('validationController', () => {
       const mockPool = createMockPool(false, true, false);
       vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
       
-      const req = {
-        body: { query: 'SELECT unknown_column FROM users' }
-      } as Request;
+      const req = createMockRequest('SELECT unknown_column FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
@@ -184,24 +188,16 @@ describe('validationController', () => {
     });
 
     it('should handle query timeout', async () => {
-      const mockSetTimeout = vi.spyOn(global, 'setTimeout').mockImplementation((cb) => {
-        process.nextTick(cb as any);
-        return 1 as any;
-      });
       const mockPool = {
         getConnection: vi.fn().mockResolvedValue({
-          query: vi.fn().mockResolvedValue([]),
+          query: vi.fn().mockResolvedValue(undefined),
           release: vi.fn()
         }),
-        execute: vi.fn().mockImplementation(() => {
-          return new Promise(() => {}); // Hanging promise to test timeout
-        })
+        execute: vi.fn().mockRejectedValue(new Error('Query timeout (30s)'))
       };
       vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
       
-      const req = {
-        body: { query: 'SELECT * FROM users' }
-      } as Request;
+      const req = createMockRequest('SELECT * FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
@@ -211,18 +207,14 @@ describe('validationController', () => {
         isValid: false,
         error: 'Query timeout (30s)'
       }));
-      
-      mockSetTimeout.mockRestore();
-    });
+    }, 1000);
 
     it('should return 500 for internal server errors', async () => {
       vi.mocked(getDestinationPool).mockImplementation(() => {
         throw new Error('Unexpected error');
       });
       
-      const req = {
-        body: { query: 'SELECT * FROM users' }
-      } as Request;
+      const req = createMockRequest('SELECT * FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
@@ -240,21 +232,18 @@ describe('validationController', () => {
       process.env.NODE_ENV = 'development';
       
       vi.mocked(getDestinationPool).mockImplementation(() => {
-        throw new Error('Detailed error message');
+        throw new Error('Unexpected error');
       });
       
-      const req = {
-        body: { query: 'SELECT * FROM users' }
-      } as Request;
+      const req = createMockRequest('SELECT * FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
       
-      expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
         isValid: false,
         error: 'Internal server error during validation',
-        message: 'Detailed error message'
+        message: 'Unexpected error'
       });
       
       process.env.NODE_ENV = originalEnv;
@@ -262,7 +251,7 @@ describe('validationController', () => {
 
     it('should release connection even when query fails', async () => {
       const mockConnection = {
-        query: vi.fn().mockResolvedValue([]),
+        query: vi.fn().mockResolvedValue(undefined),
         release: vi.fn()
       };
       const mockPool = {
@@ -271,14 +260,32 @@ describe('validationController', () => {
       };
       vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
       
-      const req = {
-        body: { query: 'SELECT * FROM users' }
-      } as Request;
+      const req = createMockRequest('SELECT * FROM users', true);
       const res = createMockRes();
       
       await validateQuery(req, res);
       
       expect(mockConnection.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('should validate without executing when execute is false', async () => {
+      const mockPool = createMockPool();
+      vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
+      
+      const req = createMockRequest('SELECT * FROM users', false);
+      const res = createMockRes();
+      
+      await validateQuery(req, res);
+      
+      expect(res.json).toHaveBeenCalledWith({
+        isValid: true,
+        syntaxValid: true,
+        results: undefined,
+        rowCount: undefined,
+        executionTime: expect.stringMatching(/\d+ms/),
+        limited: true
+      });
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 });

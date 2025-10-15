@@ -56,7 +56,11 @@ describe('queryController', () => {
 
   describe('generateQuery', () => {
     it('generates SQL via pattern matching', async () => {
-      const req = { body: { prompt: 'show users from california', useAI: false } } as any as Request;
+      const req = { 
+        body: { prompt: 'show users from california', useAI: false },
+        headers: { 'x-session-id': 'test-session' },
+        ip: '127.0.0.1'
+      } as any as Request;
       const res = createMockRes();
       await generateQuery(req, res);
       expect(res.json).toHaveBeenCalled();
@@ -66,7 +70,11 @@ describe('queryController', () => {
     });
 
     it('returns 404 when no pattern matches', async () => {
-      const req = { body: { prompt: 'unrelated words', useAI: false } } as any as Request;
+      const req = { 
+        body: { prompt: 'unrelated words', useAI: false },
+        headers: { 'x-session-id': 'test-session' },
+        ip: '127.0.0.1'
+      } as any as Request;
       const res = createMockRes();
       await generateQuery(req, res);
       expect(res.status).toHaveBeenCalledWith(404);

@@ -6,9 +6,15 @@
     "start": "node .",
     "dev": "nodemon src/index.ts",
     "build": "tsc",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:unit:watch": "vitest --config vitest.config.ts",
+    "test:unit:coverage": "vitest run --config vitest.config.ts --coverage",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:e2e:watch": "vitest --config vitest.e2e.config.ts",
+    "test:e2e:coverage": "vitest run --config vitest.e2e.config.ts --coverage",
+    "test:e2e:ci": "vitest run --config vitest.e2e.config.ts --reporter=verbose",
+    "test:all": "npm run test:unit && npm run test:e2e",
     "schema:generate": "ts-node scripts/SchemaGenerator.ts"
   },
   "keywords": [],
@@ -38,3 +44,4 @@
     "vitest": "^3.2.4"
   }
 }
+ 

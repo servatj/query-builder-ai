@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response } from 'express';
-import { listDatabases, switchDatabase } from '../../../src/controllers/databaseController';
-import { DatabaseConfig } from '../../../src/services/databaseSystemService';
 
-// Mock the database service
+// Mock the database service BEFORE any imports
 vi.mock('../../../src/services/databaseSystemService', () => ({
   __esModule: true,
   default: {
@@ -14,6 +12,19 @@ vi.mock('../../../src/services/databaseSystemService', () => ({
   }
 }));
 
+// Don't mock the controller functions - we want to test them
+
+// Mock other dependencies that might be imported by routes
+vi.mock('../../../src/services/rulesService', () => ({
+  clearCachedRules: vi.fn()
+}));
+
+vi.mock('../../../src/index', () => ({
+  recreateDestinationPool: vi.fn()
+}));
+
+import { listDatabases, switchDatabase } from '../../../src/controllers/databaseController';
+import { DatabaseConfig } from '../../../src/services/databaseSystemService';
 import databaseService from '../../../src/services/databaseSystemService';
 
 const createMockRes = () => {

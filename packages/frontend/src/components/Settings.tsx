@@ -7,7 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DatabaseForm from '@/components/DatabaseForm';
 import AIProviderSelector from '@/components/AIProviderSelector';
 
-const API_BASE_URL = '';
+// Use environment-aware API base URL
+const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3001' : '';
 
 interface QueryPattern {
   intent: string;
@@ -87,23 +88,18 @@ const Settings: React.FC = () => {
       setIsSandboxMode(response.data.sandboxMode || false);
       
       // Load available databases
-      const dbResponse = await axios.get(`${API_BASE_URL}/api/settings/databases`);
-      setAvailableDatabases(dbResponse.data.data || []);
+      const dbResponse = await axios.get(`${API_BASE_URL}/api/databases`);
+      setAvailableDatabases(dbResponse.data || []);
       
       // Set the current default database
-      const defaultDb = (dbResponse.data.data || []).find((db: any) => db.is_default);
+      const defaultDb = (dbResponse.data || []).find((db: any) => db.is_default);
       if (defaultDb) {
         setSelectedDatabaseId(defaultDb.id);
       }
 
-      // Load current AI provider
-      try {
-        const aiConfigResponse = await axios.get(`${API_BASE_URL}/api/settings/ai/config`);
-        if (aiConfigResponse.data.success) {
-          setCurrentAIProvider(aiConfigResponse.data.data.provider || 'anthropic');
-        }
-      } catch (aiErr) {
-        console.warn('Could not load AI provider config:', aiErr);
+      // Load current AI provider from settings
+      if (response.data.ai?.provider) {
+        setCurrentAIProvider(response.data.ai.provider);
       }
     } catch (err: any) {
       console.warn('Could not load current settings:', err);
@@ -578,17 +574,17 @@ const Settings: React.FC = () => {
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <h3 className="font-medium mb-2">Configuration Template</h3>
               <pre className="text-xs text-muted-foreground overflow-x-auto">
-{`{
-  "name": "My Database",
-  "host": "localhost",
-  "port": 3306,
-  "database_name": "your_database",
-  "username": "your_username", 
-  "password": "your_password",
-  "ssl_enabled": false,
-  "is_active": true,
-  "is_default": false
-}`}
+                    {`{
+                      "name": "My Database",
+                      "host": "localhost",
+                      "port": 3306,
+                      "database_name": "your_database",
+                      "username": "your_username", 
+                      "password": "your_password",
+                      "ssl_enabled": false,
+                      "is_active": true,
+                      "is_default": false
+                    }`}
               </pre>
             </div>
             </CardContent>

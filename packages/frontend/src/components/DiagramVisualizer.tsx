@@ -99,18 +99,36 @@ const nodeTypes: NodeTypes = {
   tableNode: TableNode,
 };
 
-function DiagramVisualizer() {
-  const [schema, setSchema] = useState<DatabaseSchema | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+interface DiagramVisualizerProps {
+  schema?: DatabaseSchema | null;
+}
+
+function DiagramVisualizer({ schema: propSchema }: DiagramVisualizerProps) {
+  const [schema, setSchema] = useState<DatabaseSchema | null>(propSchema || null);
+  const [isLoading, setIsLoading] = useState(!propSchema);
   const [error, setError] = useState<string | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [layoutAlgorithm, setLayoutAlgorithm] = useState<'hierarchical' | 'grid' | 'circular'>('hierarchical');
   const [showMiniMap, setShowMiniMap] = useState(true);
 
+  // Update schema when prop changes
   useEffect(() => {
-    loadSchema();
-  }, []);
+    if (propSchema) {
+      setSchema(propSchema);
+      setIsLoading(false);
+      setError(null);
+      // Generate diagram with the new schema
+      const response = { schema: propSchema, relationships: [] };
+      generateDiagram(propSchema, layoutAlgorithm, response.relationships || detectRelationships(propSchema));
+    }
+  }, [propSchema, layoutAlgorithm]);
+
+  useEffect(() => {
+    if (!propSchema) {
+      loadSchema();
+    }
+  }, [propSchema]);
 
   const loadSchema = async () => {
     setIsLoading(true);

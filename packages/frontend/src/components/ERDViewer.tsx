@@ -21,18 +21,34 @@ interface TableRelationship {
   type: 'one-to-many' | 'many-to-one' | 'one-to-one' | 'many-to-many';
 }
 
-function ERDViewer() {
-  const [schema, setSchema] = useState<DatabaseSchema | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+interface ERDViewerProps {
+  schema?: DatabaseSchema | null;
+}
+
+function ERDViewer({ schema: propSchema }: ERDViewerProps) {
+  const [schema, setSchema] = useState<DatabaseSchema | null>(propSchema || null);
+  const [isLoading, setIsLoading] = useState(!propSchema);
   const [error, setError] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [relationships, setRelationships] = useState<TableRelationship[]>([]);
 
+  // Update schema when prop changes
   useEffect(() => {
-    loadSchema();
-  }, []);
+    if (propSchema) {
+      setSchema(propSchema);
+      setIsLoading(false);
+      setError(null);
+      detectRelationships(propSchema);
+    }
+  }, [propSchema]);
+
+  useEffect(() => {
+    if (!propSchema) {
+      loadSchema();
+    }
+  }, [propSchema]);
 
   const loadSchema = async () => {
     setIsLoading(true);

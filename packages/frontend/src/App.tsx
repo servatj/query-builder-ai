@@ -89,6 +89,7 @@ function App() {
     try {
       // Load available patterns (also includes schema)
       const patternsResponse = await axios.get(`${API_BASE_URL}/api/patterns`);
+      console.log('Loaded patterns:', patternsResponse.data.patterns);
       setAvailablePatterns(patternsResponse.data.patterns || []);
       if (patternsResponse.data.schema) {
         setSchema(patternsResponse.data.schema as BackendSchema);
@@ -441,9 +442,9 @@ function App() {
         {currentPage === 'settings' ? (
           <Settings />
         ) : currentPage === 'schema' ? (
-          <ERDViewer />
+          <ERDViewer schema={schema} />
         ) : currentPage === 'diagram' ? (
-          <DiagramVisualizer />
+          <DiagramVisualizer schema={schema} />
         ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Query Builder */}

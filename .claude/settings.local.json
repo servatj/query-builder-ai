@@ -37,7 +37,20 @@
       "Bash(npm run typecheck:*)",
       "Bash(npm run:*)",
       "Bash(timeout 10s npm start)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(sudo lsof:*)",
+      "Bash(netstat:*)",
+      "Bash(ss:*)",
+      "Bash(sudo systemctl stop:*)",
+      "Bash(docker start:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Read(//etc/caddy/**)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(sudo systemctl start:*)",
+      "Bash(sudo systemctl status:*)",
+      "Bash(git pull:*)"
     ],
     "deny": []
   }

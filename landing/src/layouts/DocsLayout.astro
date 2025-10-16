@@ -1,0 +1,133 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+
+// Navigation items for docs sidebar
+const docsNav = [
+  { title: 'Overview', slug: 'readme' },
+  { title: 'Getting Started', slug: 'getting-started' },
+  { title: 'Quick Start', slug: 'quick-start' },
+  { title: 'User Guide', slug: 'user-guide' },
+  { title: 'Architecture', slug: 'architecture' },
+  { title: 'AI Providers', slug: 'ai-providers' },
+  { title: 'Settings', slug: 'settings' },
+  { title: 'ERD Visualizer', slug: 'erd-visualizer' },
+  { title: 'Diagram Visualizer', slug: 'diagram-visualizer' },
+  { title: 'API Reference', slug: 'api-reference' },
+  { title: 'Development', slug: 'development' },
+  { title: 'Deployment', slug: 'deployment' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="docs-container">
+    <aside class="docs-sidebar">
+      <div class="docs-sidebar-content">
+        <h2 class="docs-sidebar-title">Documentation</h2>
+        <nav class="docs-nav">
+          {docsNav.map(item => (
+            <a 
+              href={`/docs/${item.slug}`}
+              class:list={['docs-nav-link', { active: currentPath.includes(item.slug) }]}
+            >
+              {item.title}
+            </a>
+          ))}
+        </nav>
+      </div>
+    </aside>
+    <main class="docs-content">
+      <slot />
+    </main>
+  </div>
+</BaseLayout>
+
+<style>
+  .docs-container {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: calc(100vh - 80px);
+    margin-top: 80px;
+    background: var(--gray-50);
+  }
+
+  .docs-sidebar {
+    background: var(--white);
+    border-right: 1px solid var(--gray-200);
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+
+  .docs-sidebar-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .docs-sidebar-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--purple-200);
+  }
+
+  .docs-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .docs-nav-link {
+    padding: 0.75rem 1rem;
+    color: var(--gray-700);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    font-size: 0.9375rem;
+  }
+
+  .docs-nav-link:hover {
+    background: var(--purple-50);
+    color: var(--purple-700);
+  }
+
+  .docs-nav-link.active {
+    background: var(--purple-100);
+    color: var(--purple-700);
+    font-weight: 600;
+  }
+
+  .docs-content {
+    padding: 3rem;
+    max-width: 900px;
+  }
+
+  @media (max-width: 968px) {
+    .docs-container {
+      grid-template-columns: 1fr;
+    }
+
+    .docs-sidebar {
+      position: relative;
+      height: auto;
+      top: 0;
+      border-right: none;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .docs-content {
+      padding: 2rem 1.5rem;
+    }
+  }
+</style>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { axios, API_BASE_URL } from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,13 +11,6 @@ import ERDViewer from '@/components/ERDViewer';
 import DiagramVisualizer from '@/components/DiagramVisualizer';
 import DatabaseSwitcher from '@/components/DatabaseSwitcher';
 import { format } from 'sql-formatter';
-
-// Use environment-aware API base URL
-// In development (npm run dev): uses direct backend URL
-// In production (Docker): uses relative path (nginx proxies /api/* to backend)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://maisql.com';
-
-console.log('API Base URL:', API_BASE_URL);
 
 interface QueryPattern {
   intent: string;
@@ -157,7 +150,9 @@ function App() {
     setExecutionInfo(null);
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/generate-query`, { prompt: naturalLanguageQuery, useAI: true });
+      const response = await axios.post(`/api/generate-query`, 
+        { prompt: naturalLanguageQuery, useAI: true }
+      );
       
       // Auto-format the generated SQL
       let formattedSql = response.data.sql;
@@ -200,7 +195,9 @@ function App() {
     setExecutionInfo(null);
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/validate-query`, { query: sqlQuery });
+      const response = await axios.post(`/api/validate-query`, 
+        { query: sqlQuery }
+      );
       setIsValid(response.data.isValid);
       
       if (response.data.isValid) {  

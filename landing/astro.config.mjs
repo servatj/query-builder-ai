@@ -4,6 +4,7 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://maisql.com',
   output: 'static',
+  trailingSlash: 'ignore',
   build: {
     assets: 'assets'
   },

@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { axios, API_BASE_URL } from '@/lib/axios';
 import { Button } from '@/components/ui/button';
-
-const API_BASE_URL = '';
 
 interface Database {
   id: number;

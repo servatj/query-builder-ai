@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { axios, API_BASE_URL } from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import DatabaseForm from '@/components/DatabaseForm';
 import AIProviderSelector from '@/components/AIProviderSelector';
-
-// Use environment-aware API base URL
-const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3001' : '';
 
 interface QueryPattern {
   intent: string;

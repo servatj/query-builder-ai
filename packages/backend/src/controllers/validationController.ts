@@ -4,6 +4,8 @@ import { normalizeLimitClause } from '../utils/validators';
 import { queryLogService } from '../services/queryLogService';
 
 export const validateQuery = async (req: Request, res: Response) => {
+
+  console.log('validateQuery', req.body);
   const startTime = Date.now();
   
   try {
@@ -64,7 +66,7 @@ export const validateQuery = async (req: Request, res: Response) => {
         ip_address: ipAddress
       });
       
-      return res.json({ isValid: true, syntaxValid: true, results: execute ? data : undefined, rowCount: execute ? rowCount : undefined, executionTime: `${executionTime}ms`, limited: !sql.toLowerCase().includes('limit') });
+      return res.json({ isValid: true, syntaxValid: true, data: data, rowCount: rowCount, executionTime: `${executionTime}ms`, limited: !sql.toLowerCase().includes('limit') });
     } catch (error: any) {
       const isSyntaxError = error.code === 'ER_PARSE_ERROR' || error.message.includes('syntax') || error.message.includes('SQL syntax');
       const executionTime = Date.now() - startTime;

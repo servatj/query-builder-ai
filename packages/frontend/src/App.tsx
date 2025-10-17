@@ -150,7 +150,7 @@ function App() {
     setExecutionInfo(null);
     
     try {
-      const response = await axios.post(`/api/generate-query`, 
+      const response = await axios.post(`${API_BASE_URL}/api/generate-query`, 
         { prompt: naturalLanguageQuery, useAI: true }
       );
       
@@ -195,8 +195,8 @@ function App() {
     setExecutionInfo(null);
     
     try {
-      const response = await axios.post(`/api/validate-query`, 
-        { query: sqlQuery }
+      const response = await axios.post(`${API_BASE_URL}/api/validate-query`, 
+        { sql: sqlQuery }
       );
       setIsValid(response.data.isValid);
       

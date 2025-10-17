@@ -14,6 +14,7 @@ export const validateGenerateQuery = (req: Request, res: Response, next: NextFun
 export const validateSql = (req: Request, res: Response, next: NextFunction) => {
   const parse = sqlQuerySchema.safeParse(req.body);
   if (!parse.success) {
+    console.log('validateSql error', parse.error.errors);
     return res.status(400).json({ isValid: false, error: parse.error.errors[0]?.message || 'Invalid query' });
   }
   req.body = parse.data;

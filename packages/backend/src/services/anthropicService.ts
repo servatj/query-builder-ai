@@ -169,12 +169,18 @@ CRITICAL RULES FOR SQL GENERATION:
 5. Chain JOINs properly: If querying "actors in horror films", join actor → film_actor → film → film_category → category
 6. Always include WHERE clauses when filtering (e.g., WHERE category.name = 'Horror')
 7. Add ORDER BY for "top", "most", "best" queries, plus COUNT/GROUP BY for aggregations
-8. ALWAYS include LIMIT with a NUMERIC value (e.g., LIMIT 10, LIMIT 20) - NEVER use words or variables
+8. ALWAYS include LIMIT with a NUMERIC value at the end (e.g., LIMIT 10, LIMIT 20) - NEVER omit LIMIT, NEVER use words
 9. Use meaningful table aliases (e.g., 'f' for film, 'a' for actor, 'fa' for film_actor)
 10. For text searches, use LIKE with wildcards: WHERE column LIKE '%value%'
 11. Handle possessive/plural forms intelligently (e.g., "films" → film table, "actors" → actor table)
+12. ALWAYS select primary identifier columns FIRST (e.g., film_id, title for films; actor_id, first_name, last_name for actors)
+13. For "show all X" queries, select the most relevant columns: IDs, names/titles, and 2-3 key descriptive fields
 
-IMPORTANT: LIMIT must ALWAYS be followed by a number (e.g., LIMIT 10, LIMIT 20), never by a word like "select" or a variable.
+IMPORTANT REQUIREMENTS:
+- LIMIT clause is MANDATORY - every query must end with "LIMIT <number>"
+- LIMIT must be a number (10-50 typical), never a word or variable
+- Always select identifier columns first (e.g., film_id, title) before detail columns
+- For "show/list all" queries, select: ID, name/title, and 2-3 most important descriptive columns
 
 CONFIDENCE SCORING (be realistic):
 - 0.9-1.0: Exact match with clear schema mapping
@@ -198,27 +204,35 @@ IMPORTANT:
 
 EXAMPLES:
 
-Example 1 - Simple actor search:
+Example 1 - Show all films:
 {
-  "sql": "SELECT f.title, a.first_name, a.last_name FROM film f JOIN film_actor fa ON f.film_id = fa.film_id JOIN actor a ON fa.actor_id = a.actor_id WHERE CONCAT(a.first_name, ' ', a.last_name) LIKE '%Smith%' LIMIT 20",
+  "sql": "SELECT film_id, title, description, release_year, rating, length FROM film ORDER BY title LIMIT 20",
   "confidence": 0.95,
-  "reasoning": "Query finds films with actors matching 'Smith'. Joined film, film_actor, and actor tables using proper foreign keys. Used CONCAT and LIKE for name matching.",
+  "reasoning": "Query lists all films with most relevant columns. Selected film_id and title first (identifiers), then key descriptive fields. Ordered by title for readability. Included mandatory LIMIT.",
+  "tables_used": ["film"]
+}
+
+Example 2 - Simple actor search:
+{
+  "sql": "SELECT f.film_id, f.title, a.first_name, a.last_name FROM film f JOIN film_actor fa ON f.film_id = fa.film_id JOIN actor a ON fa.actor_id = a.actor_id WHERE CONCAT(a.first_name, ' ', a.last_name) LIKE '%Smith%' LIMIT 20",
+  "confidence": 0.95,
+  "reasoning": "Query finds films with actors matching 'Smith'. Selected identifiers first (film_id, title, names). Joined through film_actor junction table. Used CONCAT and LIKE for name matching. Included mandatory LIMIT.",
   "tables_used": ["film", "film_actor", "actor"]
 }
 
-Example 2 - Category filtering with junction table:
+Example 3 - Category filtering with junction table:
 {
-  "sql": "SELECT a.first_name, a.last_name, f.title FROM actor a JOIN film_actor fa ON a.actor_id = fa.actor_id JOIN film f ON fa.film_id = f.film_id JOIN film_category fc ON f.film_id = fc.film_id JOIN category c ON fc.category_id = c.category_id WHERE c.name = 'Horror' LIMIT 20",
+  "sql": "SELECT a.actor_id, a.first_name, a.last_name, f.film_id, f.title FROM actor a JOIN film_actor fa ON a.actor_id = fa.actor_id JOIN film f ON fa.film_id = f.film_id JOIN film_category fc ON f.film_id = fc.film_id JOIN category c ON fc.category_id = c.category_id WHERE c.name = 'Horror' LIMIT 20",
   "confidence": 0.95,
-  "reasoning": "Query finds actors in horror films. Identified film_category as junction table linking film to category. Chained JOINs: actor → film_actor → film → film_category → category, filtered by category name.",
+  "reasoning": "Query finds actors in horror films. Selected all identifier columns first (actor_id, names, film_id, title). Identified film_category as junction table linking film to category. Chained JOINs: actor → film_actor → film → film_category → category, filtered by category name. Included mandatory LIMIT.",
   "tables_used": ["actor", "film_actor", "film", "film_category", "category"]
 }
 
-Example 3 - Top aggregation with proper grouping:
+Example 4 - Top aggregation with proper grouping:
 {
   "sql": "SELECT a.actor_id, a.first_name, a.last_name, COUNT(r.rental_id) AS rental_count FROM actor a JOIN film_actor fa ON a.actor_id = fa.actor_id JOIN film f ON fa.film_id = f.film_id JOIN inventory i ON f.film_id = i.film_id JOIN rental r ON i.inventory_id = r.inventory_id GROUP BY a.actor_id, a.first_name, a.last_name ORDER BY rental_count DESC LIMIT 10",
   "confidence": 0.90,
-  "reasoning": "Query finds top rented actors. Chained actor → film_actor → film → inventory → rental. Grouped by actor, counted rentals, sorted descending.",
+  "reasoning": "Query finds top rented actors. Selected identifier columns (actor_id, names) plus aggregated count. Chained actor → film_actor → film → inventory → rental. Grouped by actor, counted rentals, sorted descending. Included mandatory LIMIT.",
   "tables_used": ["actor", "film_actor", "film", "inventory", "rental"]
 }`;
   }

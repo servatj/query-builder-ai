@@ -765,7 +765,10 @@ describe('settingsController', () => {
         
         expect(res.json).toHaveBeenCalledWith({
           success: true,
-          data: mockDatabases
+          data: mockDatabases.map(db => ({
+            ...db,
+            password: '********'
+          }))
         });
       });
     });

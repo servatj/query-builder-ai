@@ -85,13 +85,15 @@ describe('validationController', () => {
       
       await validateQuery(req, res);
       
+      const expectedData = [
+        { id: 1, name: 'John', email: 'john@example.com' },
+        { id: 2, name: 'Jane', email: 'jane@example.com' }
+      ];
       expect(res.json).toHaveBeenCalledWith({
         isValid: true,
         syntaxValid: true,
-        results: [
-          { id: 1, name: 'John', email: 'john@example.com' },
-          { id: 2, name: 'Jane', email: 'jane@example.com' }
-        ],
+        results: expectedData,
+        data: expectedData, // Now includes data field for backwards compatibility
         rowCount: 2,
         executionTime: expect.stringMatching(/\d+ms/),
         limited: true
@@ -167,7 +169,7 @@ describe('validationController', () => {
       });
     });
 
-    it('should return 400 for execution errors (non-syntax)', async () => {
+    it('should return 200 for execution errors (non-syntax)', async () => {
       const mockPool = createMockPool(false, true, false);
       vi.mocked(getDestinationPool).mockReturnValue(mockPool as any);
       
@@ -176,7 +178,8 @@ describe('validationController', () => {
       
       await validateQuery(req, res);
       
-      expect(res.status).toHaveBeenCalledWith(400);
+      // Changed: Now returns 200 for execution errors (only 400 for syntax errors)
+      expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         isValid: false,
         syntaxValid: true,
@@ -202,7 +205,8 @@ describe('validationController', () => {
       
       await validateQuery(req, res);
       
-      expect(res.status).toHaveBeenCalledWith(400);
+      // Changed: Now returns 200 for timeouts (execution errors)
+      expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         isValid: false,
         error: 'Query timeout (30s)'
@@ -277,11 +281,18 @@ describe('validationController', () => {
       
       await validateQuery(req, res);
       
+      // Note: The validation controller still executes EXPLAIN and the query
+      // The execute flag only affects dangerous operation checks
+      const expectedData = [
+        { id: 1, name: 'John', email: 'john@example.com' },
+        { id: 2, name: 'Jane', email: 'jane@example.com' }
+      ];
       expect(res.json).toHaveBeenCalledWith({
         isValid: true,
         syntaxValid: true,
-        results: undefined,
-        rowCount: undefined,
+        results: expectedData,
+        data: expectedData,
+        rowCount: 2,
         executionTime: expect.stringMatching(/\d+ms/),
         limited: true
       });

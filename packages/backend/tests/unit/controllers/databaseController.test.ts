@@ -77,7 +77,11 @@ describe('databaseController', () => {
       await listDatabases(req, res);
       
       expect(databaseService.getDatabaseConfigs).toHaveBeenCalledTimes(1);
-      expect(res.json).toHaveBeenCalledWith(mockDatabases);
+      // Expect passwords to be masked
+      expect(res.json).toHaveBeenCalledWith(mockDatabases.map(db => ({
+        ...db,
+        password: '********'
+      })));
       expect(res.status).not.toHaveBeenCalled();
     });
 

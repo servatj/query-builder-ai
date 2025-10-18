@@ -3,6 +3,38 @@ import { getDestinationPool } from '../services/pools';
 import { normalizeLimitClause } from '../utils/validators';
 import { queryLogService } from '../services/queryLogService';
 
+// Security check for dangerous SQL operations
+const isDangerousOperation = (sql: string): { isDangerous: boolean; reason?: string } => {
+  const normalizedSql = sql.trim().toLowerCase();
+  
+  // Block DML operations (INSERT, UPDATE, DELETE, TRUNCATE)
+  if (normalizedSql.match(/^\s*(insert|update|delete|truncate)\s+/i)) {
+    return { isDangerous: true, reason: 'DML operations (INSERT, UPDATE, DELETE, TRUNCATE) are not allowed' };
+  }
+  
+  // Block DDL operations (DROP, CREATE, ALTER)
+  if (normalizedSql.match(/^\s*(drop|create|alter)\s+/i)) {
+    return { isDangerous: true, reason: 'DDL operations (DROP, CREATE, ALTER) are not allowed' };
+  }
+  
+  // Block other dangerous statements
+  if (normalizedSql.match(/;\s*(drop|delete|truncate|insert|update|create|alter)/i)) {
+    return { isDangerous: true, reason: 'Multiple statements with dangerous operations are not allowed' };
+  }
+  
+  // Block common SQL injection patterns
+  if (normalizedSql.match(/('\s*or\s*'1'\s*=\s*'1|'\s*or\s*1\s*=\s*1|--\s*$|\bor\b\s+['"]?\d['"]?\s*=\s*['"]?\d['"]?)/i)) {
+    return { isDangerous: true, reason: 'Potential SQL injection pattern detected' };
+  }
+  
+  // Block SLEEP and other time-consuming functions that could cause DoS
+  if (normalizedSql.match(/\bsleep\s*\(|benchmark\s*\(|get_lock\s*\(/i)) {
+    return { isDangerous: true, reason: 'Time-consuming or blocking functions are not allowed' };
+  }
+  
+  return { isDangerous: false };
+};
+
 export const validateQuery = async (req: Request, res: Response) => {
 
   console.log('validateQuery', req.body);
@@ -10,6 +42,18 @@ export const validateQuery = async (req: Request, res: Response) => {
   
   try {
     const { sql, execute = false } = req.body as { sql: string; execute?: boolean };
+    
+    // Security check: Block dangerous operations
+    if (execute) {
+      const securityCheck = isDangerousOperation(sql);
+      if (securityCheck.isDangerous) {
+        return res.status(400).json({
+          isValid: false,
+          error: securityCheck.reason || 'This operation is not allowed for security reasons'
+        });
+      }
+    }
+    
     const destinationPool = getDestinationPool();
     
     // Extract user session and IP for logging
@@ -66,7 +110,15 @@ export const validateQuery = async (req: Request, res: Response) => {
         ip_address: ipAddress
       });
       
-      return res.json({ isValid: true, syntaxValid: true, data: data, rowCount: rowCount, executionTime: `${executionTime}ms`, limited: !sql.toLowerCase().includes('limit') });
+      return res.json({ 
+        isValid: true, 
+        syntaxValid: true, 
+        results: data, 
+        data: data, // Keep for backwards compatibility
+        rowCount: rowCount, 
+        executionTime: `${executionTime}ms`, 
+        limited: !sql.toLowerCase().includes('limit') 
+      });
     } catch (error: any) {
       const isSyntaxError = error.code === 'ER_PARSE_ERROR' || error.message.includes('syntax') || error.message.includes('SQL syntax');
       const executionTime = Date.now() - startTime;
@@ -82,7 +134,11 @@ export const validateQuery = async (req: Request, res: Response) => {
         ip_address: ipAddress
       });
       
-      return res.status(400).json({
+      // Return 200 with isValid: false for execution errors (non-existent tables, etc.)
+      // Return 400 only for syntax errors
+      const statusCode = isSyntaxError ? 400 : 200;
+      
+      return res.status(statusCode).json({
         isValid: false,
         syntaxValid: !isSyntaxError,
         error: error.message,

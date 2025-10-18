@@ -6,7 +6,12 @@ import { recreateDestinationPool } from '../index';
 export const listDatabases = async (_req: Request, res: Response) => {
   try {
     const databases = await databaseService.getDatabaseConfigs();
-    return res.json(databases);
+    // Mask passwords for security
+    const maskedDatabases = databases.map(db => ({
+      ...db,
+      password: db.password ? '********' : ''
+    }));
+    return res.json(maskedDatabases);
   } catch {
     return res.status(500).json({ error: 'Failed to fetch database configurations' });
   }

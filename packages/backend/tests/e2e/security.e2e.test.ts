@@ -186,8 +186,10 @@ describe('Security E2E Tests', () => {
         })
         .timeout(5000);
 
-      // Should timeout or return error within reasonable time
-      expect([200, 408, 500]).toContain(response.status);
+      // Should timeout, block, or return error within reasonable time
+      // 400 = blocked by security check (preferred)
+      // 200/408/500 = timeout handling
+      expect([200, 400, 408, 500]).toContain(response.status);
     });
   });
 

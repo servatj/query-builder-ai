@@ -256,7 +256,12 @@ export const testAI = async (req: Request, res: Response) => {
 export const getAllDatabases = async (_req: Request, res: Response) => {
   try {
     const databases = await databaseService.getDatabaseConfigs();
-    return res.json({ success: true, data: databases });
+    // Mask passwords for security
+    const maskedDatabases = databases.map(db => ({
+      ...db,
+      password: db.password ? '********' : ''
+    }));
+    return res.json({ success: true, data: maskedDatabases });
   } catch (error) {
     console.error('Failed to get databases:', error);
     return res.status(500).json({ error: 'Failed to fetch database configurations' });

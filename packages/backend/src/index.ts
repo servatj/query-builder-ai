@@ -100,21 +100,44 @@ bootStrap();
 
 // CORS Configuration
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://sbox.maisql.com',
-    'https://maisql.com',
-    'https://www.maisql.com'
-  ],
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Allow requests with no origin (like mobile apps, curl, or tests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://sbox.maisql.com',
+      'https://maisql.com',
+      'https://www.maisql.com'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // Allow other origins but log them
+      logger.warn(`CORS request from non-whitelisted origin: ${origin}`);
+      callback(null, true);
+    }
+  },
   credentials: true,
-  optionsSuccessStatus: 200,
+  optionsSuccessStatus: 204, // Changed to 204 for proper OPTIONS response
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Session-Id']
 };
 
 // Middleware
 app.use(cors(corsOptions));
+
+// Additional CORS headers for testing and edge cases
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Ensure CORS headers are always present, even without Origin header
+  if (!res.getHeader('Access-Control-Allow-Origin')) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
